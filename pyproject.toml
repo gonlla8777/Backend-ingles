@@ -1,0 +1,10 @@
+[project]
+name = "echoflow-backend"
+version = "0.1.0"
+description = "Backend FastAPI de EchoFlow (extracción y segmentación de subtítulos de YouTube + Gemini Mentor)"
+requires-python = ">=3.10"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+
