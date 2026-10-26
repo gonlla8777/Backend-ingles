@@ -1,0 +1,15 @@
+# Python
+backend/.venv/
+**/__pycache__/
+*.pyc
+.pytest_cache/
+backend/.env
+.env
+.env.local
+*.env
+
+# Flutter / Dart
+echoflow_app/.dart_tool/
+echoflow_app/build/
+.DS_Store
+
