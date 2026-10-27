@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from typing import Optional
 from pydantic import BaseModel, Field
 
 
@@ -12,6 +13,10 @@ class RawTranscriptChunk(BaseModel):
     @property
     def end(self) -> float:
         return self.start + self.duration
+
+
+# Alias para clientes y servicios externos
+RawTranscriptItem = RawTranscriptChunk
 
 
 class CleanedChunk(BaseModel):
@@ -41,6 +46,36 @@ class ProcessVideoRequest(BaseModel):
     )
 
 
+class ProcessTranscriptPayload(BaseModel):
+    """Payload de entrada para `/process-transcript` extraído directamente en el cliente."""
+
+    video_id: str = Field(
+        ...,
+        min_length=1,
+        description="ID de 11 caracteres del video de YouTube.",
+    )
+    title: Optional[str] = Field(
+        default="YouTube Practice Video",
+        description="Título descriptivo del video.",
+    )
+    raw_transcript: list[RawTranscriptItem] = Field(
+        default_factory=list,
+        description="Lista de fragmentos crudos {text, start, duration} extraídos por el cliente.",
+    )
+    language_code: str = Field(
+        default="en",
+        description="Código ISO del idioma de la transcripción.",
+    )
+    is_auto_generated: bool = Field(
+        default=False,
+        description="Indica si la transcripción fue generada automáticamente por ASR.",
+    )
+    use_ai_punctuation_fallback: bool = Field(
+        default=False,
+        description="Si es True y carece de puntuación, restaura con Gemini Flash.",
+    )
+
+
 class TranscriptSegmentOut(BaseModel):
     """Oración gramaticalmente coherente lista para sincronizar con el reproductor."""
 
@@ -53,7 +88,7 @@ class TranscriptSegmentOut(BaseModel):
 
 
 class ProcessVideoResponse(BaseModel):
-    """Respuesta estructurada de `/process-video`."""
+    """Respuesta estructurada de `/process-video` y `/process-transcript`."""
 
     video_id: str
     language_code: str
@@ -65,3 +100,6 @@ class ProcessVideoResponse(BaseModel):
         default_factory=lambda: datetime.now(timezone.utc)
     )
 
+
+# Alias semántico
+VideoDetailResponse = ProcessVideoResponse

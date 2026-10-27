@@ -1,5 +1,4 @@
 from fastapi.testclient import TestClient
-from youtube_transcript_api._errors import IpBlocked
 
 from app.api.v1.endpoints.videos import get_extractor
 from app.core.config import Settings, get_settings
@@ -8,7 +7,6 @@ from app.main import app
 from app.schemas.transcript_schemas import RawTranscriptChunk
 from app.services.youtube_extractor import (
     ExtractedTranscript,
-    YouTubeExtractorService,
     extract_video_id,
 )
 
@@ -46,6 +44,7 @@ def test_healthcheck_returns_cookie_and_fallback_status() -> None:
     data = response.json()
     assert data["status"] == "ok"
     assert "youtube_cookies_configured" in data
+    assert "youtube_proxy_configured" in data
     assert "mock_fallback_enabled" in data
 
 
@@ -97,7 +96,6 @@ def test_process_video_endpoint_activates_mock_fallback_on_ip_block() -> None:
         assert body["video_id"] == "dQw4w9WgXcQ"
         assert body["segment_count"] == 6
         assert "Hello and welcome" in body["segments"][0]["text"]
-        # Validar que los timestamps están en el rango de práctica [0s, 35s]
         assert body["segments"][-1]["end_time"] <= 35.0
     finally:
         app.dependency_overrides.clear()
@@ -127,6 +125,45 @@ def test_process_video_endpoint_returns_404_when_fallback_disabled() -> None:
         assert "No hay subtítulos en inglés disponibles" in response.json()["detail"]
     finally:
         app.dependency_overrides.clear()
+
+
+def test_process_transcript_endpoint_segments_client_raw_chunks() -> None:
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/videos/process-transcript",
+        json={
+            "video_id": "dQw4w9WgXcQ",
+            "title": "Client Extracted Video",
+            "raw_transcript": [
+                {"text": "Hello world and welcome", "start": 0.5, "duration": 2.5},
+                {"text": "to our interactive English player.", "start": 3.0, "duration": 3.0},
+            ],
+            "language_code": "en",
+            "is_auto_generated": False,
+        },
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["video_id"] == "dQw4w9WgXcQ"
+    assert body["segment_count"] == 1
+    assert body["segments"][0]["text"] == "Hello world and welcome to our interactive English player."
+    assert body["segments"][0]["start_time"] == 0.5
+    assert body["segments"][0]["end_time"] == 6.0
+
+
+def test_process_transcript_endpoint_activates_fallback_on_empty_list() -> None:
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/videos/process-transcript",
+        json={
+            "video_id": "dQw4w9WgXcQ",
+            "raw_transcript": [],
+        },
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["video_id"] == "dQw4w9WgXcQ"
+    assert body["segment_count"] == 6
 
 
 def test_process_video_rejects_invalid_url_with_422() -> None:

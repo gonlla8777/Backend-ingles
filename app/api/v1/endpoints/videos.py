@@ -3,7 +3,12 @@ from fastapi import APIRouter, Depends
 
 from app.core.config import Settings, get_settings
 from app.core.exceptions import EmptyTranscriptError, TranscriptUnavailableError
-from app.schemas.transcript_schemas import ProcessVideoRequest, ProcessVideoResponse
+from app.schemas.transcript_schemas import (
+    ProcessTranscriptPayload,
+    ProcessVideoRequest,
+    ProcessVideoResponse,
+    RawTranscriptChunk,
+)
 from app.services.coherent_segmenter import CoherentSegmenter
 from app.services.gemini_mentor_service import GeminiMentorService
 from app.services.text_cleaner import TranscriptTextCleaner
@@ -83,6 +88,67 @@ def process_video_endpoint(
         video_id=extracted.video_id,
         language_code=extracted.language_code,
         is_auto_generated=extracted.is_auto_generated,
+        segment_count=len(segments),
+        total_words=total_words,
+        segments=segments,
+    )
+
+
+@router.post(
+    "/process-transcript",
+    response_model=ProcessVideoResponse,
+    summary="Recibe subtítulos crudos extraídos por el cliente y los segmenta pedagógicamente",
+)
+def process_transcript_endpoint(
+    payload: ProcessTranscriptPayload,
+    cleaner: TranscriptTextCleaner = Depends(get_cleaner),
+    segmenter: CoherentSegmenter = Depends(get_segmenter),
+    mentor: GeminiMentorService = Depends(get_mentor),
+    settings: Settings = Depends(get_settings),
+) -> ProcessVideoResponse:
+    raw_items = payload.raw_transcript
+
+    # Si la lista viene vacía y el fallback está activado
+    if not raw_items:
+        if settings.is_fallback_enabled:
+            logger.warning(
+                "process-transcript recibió transcripción vacía para '%s'. Activando demo fallback.",
+                payload.video_id,
+            )
+            demo = get_demo_transcript(payload.video_id)
+            raw_items = [
+                RawTranscriptChunk(
+                    text=c.text, start=c.start, duration=c.duration
+                )
+                for c in demo.chunks
+            ]
+        else:
+            raise EmptyTranscriptError(payload.video_id)
+
+    chunks = [
+        RawTranscriptChunk(
+            text=item.text, start=item.start, duration=item.duration
+        )
+        for item in raw_items
+    ]
+
+    cleaned_chunks = cleaner.clean_chunks(chunks)
+    if not cleaned_chunks:
+        raise EmptyTranscriptError(payload.video_id)
+
+    segments = segmenter.segment(cleaned_chunks)
+    if not segments:
+        raise EmptyTranscriptError(payload.video_id)
+
+    if payload.use_ai_punctuation_fallback and payload.is_auto_generated:
+        segments = mentor.restore_punctuation_if_needed(segments)
+
+    total_words = sum(seg.word_count for seg in segments)
+
+    return ProcessVideoResponse(
+        video_id=payload.video_id,
+        language_code=payload.language_code,
+        is_auto_generated=payload.is_auto_generated,
         segment_count=len(segments),
         total_words=total_words,
         segments=segments,
