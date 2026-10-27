@@ -1,18 +1,27 @@
+import logging
 from fastapi import APIRouter, Depends
 
 from app.core.config import Settings, get_settings
-from app.core.exceptions import EmptyTranscriptError
+from app.core.exceptions import EmptyTranscriptError, TranscriptUnavailableError
 from app.schemas.transcript_schemas import ProcessVideoRequest, ProcessVideoResponse
 from app.services.coherent_segmenter import CoherentSegmenter
 from app.services.gemini_mentor_service import GeminiMentorService
 from app.services.text_cleaner import TranscriptTextCleaner
-from app.services.youtube_extractor import YouTubeExtractorService
+from app.services.youtube_extractor import (
+    YouTubeExtractorService,
+    extract_video_id,
+    get_demo_transcript,
+)
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
 
-def get_extractor() -> YouTubeExtractorService:
-    return YouTubeExtractorService()
+def get_extractor(
+    settings: Settings = Depends(get_settings),
+) -> YouTubeExtractorService:
+    return YouTubeExtractorService(settings=settings)
 
 
 def get_cleaner() -> TranscriptTextCleaner:
@@ -38,11 +47,24 @@ def process_video_endpoint(
     cleaner: TranscriptTextCleaner = Depends(get_cleaner),
     segmenter: CoherentSegmenter = Depends(get_segmenter),
     mentor: GeminiMentorService = Depends(get_mentor),
+    settings: Settings = Depends(get_settings),
 ) -> ProcessVideoResponse:
-    extracted = extractor.fetch_transcript(
-        url_or_id=payload.video_url_or_id,
-        preferred_languages=payload.preferred_languages,
-    )
+    try:
+        extracted = extractor.fetch_transcript(
+            url_or_id=payload.video_url_or_id,
+            preferred_languages=payload.preferred_languages,
+        )
+    except TranscriptUnavailableError as exc:
+        if settings.allow_mock_fallback:
+            video_id = extract_video_id(payload.video_url_or_id)
+            logger.warning(
+                "Fallback defensivo en endpoint /process-video para video '%s': %s",
+                video_id,
+                exc,
+            )
+            extracted = get_demo_transcript(video_id)
+        else:
+            raise
 
     cleaned_chunks = cleaner.clean_chunks(extracted.chunks)
     if not cleaned_chunks:
@@ -65,4 +87,3 @@ def process_video_endpoint(
         total_words=total_words,
         segments=segments,
     )
-

@@ -43,6 +43,8 @@ def healthcheck() -> dict[str, object]:
         "service": settings.app_name,
         "version": settings.app_version,
         "gemini_configured": settings.has_gemini_key,
+        "youtube_cookies_configured": settings.has_youtube_cookies,
+        "mock_fallback_enabled": settings.allow_mock_fallback,
     }
 
 
@@ -53,4 +55,3 @@ app.include_router(api_v1_router, prefix="/api/v1")
 app.include_router(videos.router, tags=["Direct Aliases"])
 app.include_router(evaluation.router, tags=["Direct Aliases"])
 app.include_router(quiz.router, tags=["Direct Aliases"])
-

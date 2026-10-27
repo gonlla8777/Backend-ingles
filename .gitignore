@@ -8,8 +8,12 @@ backend/.env
 .env.local
 *.env
 
+# YouTube Cookies
+cookies.txt
+*cookies*.txt
+*.cookies
+
 # Flutter / Dart
 echoflow_app/.dart_tool/
 echoflow_app/build/
 .DS_Store
-

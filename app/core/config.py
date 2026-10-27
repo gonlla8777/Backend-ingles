@@ -1,4 +1,5 @@
 from functools import lru_cache
+from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -23,6 +24,11 @@ class Settings(BaseSettings):
     gemini_api_key: str = ""
     gemini_model: str = "gemini-2.5-flash"
 
+    # YouTube Transcript Extraction, Cookies & Fallback
+    youtube_cookies_content: str | None = None
+    youtube_cookies_file_path: str | None = None
+    allow_mock_fallback: bool = True
+
     # Guardarraíles pedagógicos de segmentación de subtítulos
     segment_min_words: int = 4
     segment_target_max_words: int = 18
@@ -44,8 +50,22 @@ class Settings(BaseSettings):
             and self.gemini_api_key != "your_gemini_api_key_here"
         )
 
+    @property
+    def has_youtube_cookies(self) -> bool:
+        if self.youtube_cookies_content and self.youtube_cookies_content.strip():
+            return True
+        if self.youtube_cookies_file_path and Path(self.youtube_cookies_file_path).is_file():
+            return True
+        for candidate in (
+            Path("cookies.txt"),
+            Path("backend/cookies.txt"),
+            Path(__file__).resolve().parent.parent.parent / "cookies.txt",
+        ):
+            if candidate.is_file():
+                return True
+        return False
+
 
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
-
