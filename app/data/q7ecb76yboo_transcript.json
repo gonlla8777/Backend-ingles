@@ -1,0 +1,1117 @@
+[
+  {
+    "text": "Project Zomboid can be a very difficult game if you're inexperienced.",
+    "start": 0.0,
+    "duration": 3.0
+  },
+  {
+    "text": "So today I'm bringing you all the tips and tricks to become a superhuman survivor.",
+    "start": 3.0,
+    "duration": 4.1
+  },
+  {
+    "text": "That way you'll live long enough to be the last of us.",
+    "start": 7.1,
+    "duration": 2.7
+  },
+  {
+    "text": "Starting it up from beginner to advanced.",
+    "start": 9.8,
+    "duration": 2.2
+  },
+  {
+    "text": "A lot of which you might not have known, but if I missed any feel free to leave it in the comments.",
+    "start": 12.0,
+    "duration": 4.5
+  },
+  {
+    "text": "Let's get it rocking.",
+    "start": 16.5,
+    "duration": 1.2
+  },
+  {
+    "text": "When you spawn, if you stay close to your spawn location, there's a higher chance for less zombies.",
+    "start": 17.7,
+    "duration": 4.8
+  },
+  {
+    "text": "So always search around your spawn location first.",
+    "start": 22.5,
+    "duration": 2.5
+  },
+  {
+    "text": "You can visit the Project Zomboid Map Project website to get a full map to check your location.",
+    "start": 25.0,
+    "duration": 4.8
+  },
+  {
+    "text": "The best place to find starter weapons are kitchens, bathrooms, closets, and garages.",
+    "start": 29.8,
+    "duration": 5.2
+  },
+  {
+    "text": "If you think it can be used as a weapon, it probably can be.",
+    "start": 35.0,
+    "duration": 3.5
+  },
+  {
+    "text": "The main essential items to grab first are a weapon, water bottle, backpack, can opener, and a watch.",
+    "start": 38.5,
+    "duration": 6.0
+  },
+  {
+    "text": "The main tools, a hammer and a saw, are a bonus.",
+    "start": 44.5,
+    "duration": 3.0
+  },
+  {
+    "text": "Any container that you think could hold water probably will.",
+    "start": 47.5,
+    "duration": 3.0
+  },
+  {
+    "text": "So don't be afraid to pour out a bleach bottle and fill it back up with water, or even use a bowl.",
+    "start": 50.5,
+    "duration": 4.2
+  },
+  {
+    "text": "Any item with fresh water in your main inventory, your character will drink from automatically.",
+    "start": 54.7,
+    "duration": 4.6
+  },
+  {
+    "text": "So this will cover your thirst.",
+    "start": 59.3,
+    "duration": 1.7
+  },
+  {
+    "text": "Just remember to fill it back up frequently.",
+    "start": 61.0,
+    "duration": 2.5
+  },
+  {
+    "text": "Cook any raw foods in a microwave, stove, or campfire to avoid getting sick.",
+    "start": 103.5,
+    "duration": 4.8
+  },
+  {
+    "text": "But watch it closely so it doesn't burn, also making you sick.",
+    "start": 108.3,
+    "duration": 3.5
+  },
+  {
+    "text": "Be sure to turn off the appliance so it doesn't catch fire.",
+    "start": 111.8,
+    "duration": 3.0
+  },
+  {
+    "text": "Avoid eating rotten or stale foods also.",
+    "start": 114.8,
+    "duration": 2.4
+  },
+  {
+    "text": "When fighting more than one zombie, kite backwards while swinging.",
+    "start": 117.2,
+    "duration": 3.5
+  },
+  {
+    "text": "But don't forget you can point and shove if one gets too close.",
+    "start": 120.7,
+    "duration": 3.1
+  },
+  {
+    "text": "As long as you aren't exhausted, you can outwalk the zombies and even swing, walk, swing, walk.",
+    "start": 123.8,
+    "duration": 5.4
+  },
+  {
+    "text": "But make sure you have enough time for your character to turn.",
+    "start": 129.2,
+    "duration": 2.6
+  },
+  {
+    "text": "Also hold your aiming beacon further out in the direction you want to swing.",
+    "start": 131.8,
+    "duration": 3.2
+  },
+  {
+    "text": "Don't hold it too close to your character.",
+    "start": 135.0,
+    "duration": 1.8
+  },
+  {
+    "text": "And 360 often in aim mode to check the surrounding area in your backside so you don't get snuck up on.",
+    "start": 136.8,
+    "duration": 4.9
+  },
+  {
+    "text": "Smacking zombies also creates a lot of noise, and you can attract more.",
+    "start": 141.7,
+    "duration": 4.5
+  },
+  {
+    "text": "Your weapons can also break, so keep a backup.",
+    "start": 146.2,
+    "duration": 2.6
+  },
+  {
+    "text": "Some weapons can be repaired with duct tape or glue.",
+    "start": 148.8,
+    "duration": 2.9
+  },
+  {
+    "text": "Avoid jogging or sprinting at all costs, as it will quickly exhaust your character and you can even trip and fall.",
+    "start": 151.7,
+    "duration": 5.5
+  },
+  {
+    "text": "Too many weapon swings will also exhaust your character, so take it easy on fighting big hordes.",
+    "start": 157.2,
+    "duration": 4.2
+  },
+  {
+    "text": "You'd be surprised where you can find certain loot items, so check everything.",
+    "start": 201.4,
+    "duration": 3.8
+  },
+  {
+    "text": "But be careful how much you carry early on.",
+    "start": 205.2,
+    "duration": 2.1
+  },
+  {
+    "text": "Try for only the essentials and running back loot to a safe spot.",
+    "start": 207.3,
+    "duration": 3.7
+  },
+  {
+    "text": "You can literally just throw it on the ground.",
+    "start": 211.0,
+    "duration": 2.0
+  },
+  {
+    "text": "Being too heavy will exhaust you quickly and when you're exhausted you move slower, putting you in danger and affecting your combat.",
+    "start": 213.0,
+    "duration": 5.8
+  },
+  {
+    "text": "The tired moodle will also affect this, so rest up and avoid combat.",
+    "start": 218.8,
+    "duration": 3.7
+  },
+  {
+    "text": "You can also carry heavy items in your secondary, lessening the weight to avoid exhaustion.",
+    "start": 222.5,
+    "duration": 4.5
+  },
+  {
+    "text": "Put items in your backpack to reduce the weight also.",
+    "start": 227.0,
+    "duration": 2.8
+  },
+  {
+    "text": "Zombies chase by last known location with sight and sound.",
+    "start": 229.8,
+    "duration": 3.4
+  },
+  {
+    "text": "So crouching can sneak around them, or be used with building corners to give them the slip.",
+    "start": 233.2,
+    "duration": 4.6
+  },
+  {
+    "text": "The best bandages are ripped sheets, and can be acquired by ripping up pillowcases, clothes, or even curtains.",
+    "start": 237.8,
+    "duration": 5.8
+  },
+  {
+    "text": "If you run into locked doors and windows, you can smash down doors or bust out windows.",
+    "start": 243.6,
+    "duration": 4.2
+  },
+  {
+    "text": "The larger weapons will knock down doors faster, and make sure a weapon is in your hand to",
+    "start": 247.8,
+    "duration": 4.469
+  },
+  {
+    "text": "Bust out windows or you'll use your arm and cut yourself.",
+    "start": 252.269,
+    "duration": 2.831
+  },
+  {
+    "text": "Don't forget to remove the broken glass also.",
+    "start": 255.1,
+    "duration": 2.5
+  },
+  {
+    "text": "Leather jackets are a gift from God.",
+    "start": 257.6,
+    "duration": 2.2
+  },
+  {
+    "text": "Protecting you from rain, preventing your player from catching a cold, and also giving you more protection against bites and scratches from the zombies.",
+    "start": 259.8,
+    "duration": 6.8
+  },
+  {
+    "text": "Always wear one, it'll save your life.",
+    "start": 306.6,
+    "duration": 2.4
+  },
+  {
+    "text": "Inside buildings, be prepared at all times.",
+    "start": 309.0,
+    "duration": 2.5
+  },
+  {
+    "text": "Drawing your weapon up by holding right click, assume every corner and door is hiding a zombie, and always be prepared going up or down stairs.",
+    "start": 311.5,
+    "duration": 7.3
+  },
+  {
+    "text": "If you're unsure of what's behind a door, you can aim and shove it with the spacebar to create noise, aggroing any zombies inside,",
+    "start": 318.8,
+    "duration": 6.113
+  },
+  {
+    "text": "And they'll begin banging at the door.",
+    "start": 324.913,
+    "duration": 1.787
+  },
+  {
+    "text": "Zombies can see and hear you through windows and doors.",
+    "start": 326.7,
+    "duration": 2.8
+  },
+  {
+    "text": "You can either close the curtains if present, or use a sheet for a makeshift one.",
+    "start": 329.5,
+    "duration": 4.1
+  },
+  {
+    "text": "The TV on the Life and Living channel has many shows to give you experience for your skills.",
+    "start": 333.6,
+    "duration": 4.8
+  },
+  {
+    "text": "Every day around noon, the Woodcraft show will come on, and catching it will give you a massive",
+    "start": 338.4,
+    "duration": 3.954
+  },
+  {
+    "text": "Boost to your carpentry skills, allowing you to build items like rain barrels.",
+    "start": 342.354,
+    "duration": 3.246
+  },
+  {
+    "text": "The TV programming only runs for the first week, so be sure to catch it.",
+    "start": 345.6,
+    "duration": 3.3
+  },
+  {
+    "text": "Reading the associated books takes time, but will give you a 100% experience buff to that skill.",
+    "start": 348.9,
+    "duration": 5.7
+  },
+  {
+    "text": "You can also find the TV show VHS tapes to be played at any time, inserting it into a TV.",
+    "start": 354.6,
+    "duration": 5.4
+  },
+  {
+    "text": "Don't forget about recipe magazines.",
+    "start": 400.0,
+    "duration": 2.2
+  },
+  {
+    "text": "The best places to find books and magazines are on bookshelves, but you can also find them in certain vehicles, cardboard boxes, magazine racks,",
+    "start": 402.2,
+    "duration": 7.686
+  },
+  {
+    "text": "And even mailboxes.",
+    "start": 409.886,
+    "duration": 1.014
+  },
+  {
+    "text": "When it comes to barricading windows and doors, metal barricades require a blowtorch, welding mask, and large sheets.",
+    "start": 410.9,
+    "duration": 6.3
+  },
+  {
+    "text": "No skill is required, but they actually have less health than the wood barricades when carpentry skill has been leveled.",
+    "start": 417.2,
+    "duration": 5.4
+  },
+  {
+    "text": "If you haven't found an axe or nails, you can dismantle furniture using a saw and hammer to get those planks and nails.",
+    "start": 422.6,
+    "duration": 5.6
+  },
+  {
+    "text": "Try to base up around high fences as zombies can't climb over them, protecting you from migrating hordes during meta events.",
+    "start": 428.2,
+    "duration": 5.8
+  },
+  {
+    "text": "You can jump these fences by pressing the E key, but make sure you're not exhausted or heavy or you'll fail.",
+    "start": 434.0,
+    "duration": 5.2
+  },
+  {
+    "text": "Hop low fences with E as well, but never jog or sprint over them, as there's a chance to trip, injuring yourself or dropping your weapon.",
+    "start": 439.2,
+    "duration": 7.3
+  },
+  {
+    "text": "The power and water will randomly shut off during the first 30 days.",
+    "start": 446.5,
+    "duration": 4.1
+  },
+  {
+    "text": "You can still get a little bit of water from sinks, bathtubs, and toilets afterwards, but it's limited.",
+    "start": 450.6,
+    "duration": 4.4
+  },
+  {
+    "text": "You can prepare for this by collecting rainwater with random containers or by building rain barrels.",
+    "start": 455.0,
+    "duration": 5.3
+  },
+  {
+    "text": "Make sure to boil that water though.",
+    "start": 500.3,
+    "duration": 1.548
+  },
+  {
+    "text": "The game will let you know if a container you filled is tainted.",
+    "start": 501.848,
+    "duration": 2.752
+  },
+  {
+    "text": "You can pick up and move most objects and even use some as barricades blocking entrances.",
+    "start": 504.6,
+    "duration": 4.9
+  },
+  {
+    "text": "Make sure to put a few around windows because the first object becomes phantom, allowing the player or zombies to walk through it.",
+    "start": 509.5,
+    "duration": 5.7
+  },
+  {
+    "text": "Car keys are located in the glove box, ignition, on the ground around the car, on nearby zombies, or in nearby containers inside buildings.",
+    "start": 515.2,
+    "duration": 8.7
+  },
+  {
+    "text": "It probably won't have gas, but you can use any container with a lid to siphon some, like bleach bottles or water bottles.",
+    "start": 523.9,
+    "duration": 5.6
+  },
+  {
+    "text": "Some vehicles and garages can also contain a gas can, so check those trunks.",
+    "start": 529.5,
+    "duration": 4.0
+  },
+  {
+    "text": "If a trunk is locked, enter the vehicle and locate the unlock on the dash.",
+    "start": 533.5,
+    "duration": 3.8
+  },
+  {
+    "text": "Be sure to put car keys on your key ring, and when inserting the key into the ignition, be sure to grab it again",
+    "start": 537.3,
+    "duration": 4.886
+  },
+  {
+    "text": "When leaving and turning the car off.",
+    "start": 542.186,
+    "duration": 1.614
+  },
+  {
+    "text": "Headlights will drain a car's battery, so remember that as well.",
+    "start": 543.8,
+    "duration": 3.0
+  },
+  {
+    "text": "You can also level Mechanics to level 2 and Electrical to level 1 to hotwire cars.",
+    "start": 546.8,
+    "duration": 4.7
+  },
+  {
+    "text": "Take apart electronics including digital watches to level Electrical.",
+    "start": 551.5,
+    "duration": 3.7
+  },
+  {
+    "text": "Take car windows in and out, take the lights in and out, or take the tires on and off to level Mechanics.",
+    "start": 555.2,
+    "duration": 5.3
+  },
+  {
+    "text": "The first two take a screwdriver, but tires will require a jack and a lug wrench.",
+    "start": 600.5,
+    "duration": 4.1
+  },
+  {
+    "text": "When you hotwire a car, it requires a screwdriver as well.",
+    "start": 604.6,
+    "duration": 3.9
+  },
+  {
+    "text": "Vehicle conditions are important because if the conditions of certain parts are too low, the car will randomly die,",
+    "start": 608.5,
+    "duration": 5.526
+  },
+  {
+    "text": "Which can put you in a dicey situation.",
+    "start": 614.026,
+    "duration": 1.874
+  },
+  {
+    "text": "Or the car may take many more tries to start, also putting you in danger.",
+    "start": 615.9,
+    "duration": 3.8
+  },
+  {
+    "text": "If zombies approach the car, you can use the V key to switch seats and jump out the other side.",
+    "start": 619.7,
+    "duration": 4.0
+  },
+  {
+    "text": "You can also roll down the passenger window to cool the car off on hot days.",
+    "start": 623.7,
+    "duration": 4.198
+  },
+  {
+    "text": "Never roll down the driver's.",
+    "start": 627.898,
+    "duration": 1.602
+  },
+  {
+    "text": "If breaking into a car for hotwiring or looting, also break out the passenger window.",
+    "start": 629.5,
+    "duration": 4.1
+  },
+  {
+    "text": "You can access vehicle options with the V key for things like checking for gas to siphon, busting",
+    "start": 633.6,
+    "duration": 5.28
+  },
+  {
+    "text": "Out a window, switching seats, or filling it up at the pumps.",
+    "start": 638.88,
+    "duration": 3.32
+  },
+  {
+    "text": "Never be outside at night unless you have to, because your view becomes much smaller and it's difficult to see the zombies.",
+    "start": 642.2,
+    "duration": 5.3
+  },
+  {
+    "text": "But if you are, a flashlight can be turned on and off with the F key.",
+    "start": 647.5,
+    "duration": 3.7
+  },
+  {
+    "text": "This will drain the battery, but you can replace it with more you find by removing them from electronics like radios.",
+    "start": 651.2,
+    "duration": 5.3
+  },
+  {
+    "text": "Should you ever get injured, check it immediately on the character health panel.",
+    "start": 656.5,
+    "duration": 3.5
+  },
+  {
+    "text": "This will show you how fast you're bleeding and the type, plus location of the wound.",
+    "start": 700.0,
+    "duration": 4.3
+  },
+  {
+    "text": "Scratches can just be bandaged, but lacerations and deep wounds need to be stitched before bandaging.",
+    "start": 704.3,
+    "duration": 4.7
+  },
+  {
+    "text": "You can do this by locating a needle and thread from a sewing kit, or sometimes a suture needle from ambulances or medical supply cabinets.",
+    "start": 709.0,
+    "duration": 6.8
+  },
+  {
+    "text": "You can sometimes get thread from ripping up clothing, but a suture needle requires no thread and is a one-time use item.",
+    "start": 715.8,
+    "duration": 5.7
+  },
+  {
+    "text": "Don't even worry about changing bandages should they become soiled.",
+    "start": 721.5,
+    "duration": 3.888
+  },
+  {
+    "text": "Let them ride.",
+    "start": 725.388,
+    "duration": 0.812
+  },
+  {
+    "text": "But keep an eye on it and be prepared should it get infected.",
+    "start": 726.2,
+    "duration": 2.8
+  },
+  {
+    "text": "You can use antibiotics or disinfectant, bourbon, or alcohol wipes to clean the wound and re-bandage.",
+    "start": 729.0,
+    "duration": 5.4
+  },
+  {
+    "text": "Avoid falling from great heights as you can break your legs or even kill your character.",
+    "start": 734.4,
+    "duration": 4.4
+  },
+  {
+    "text": "But you can jump out a second story window as long as you aren't too heavy with loot.",
+    "start": 738.8,
+    "duration": 3.9
+  },
+  {
+    "text": "The helicopter event will happen between days 6 to 9 randomly.",
+    "start": 742.7,
+    "duration": 4.0
+  },
+  {
+    "text": "You can prepare by barricading yourself in and clearing the nearby area of zombies.",
+    "start": 746.7,
+    "duration": 4.0
+  },
+  {
+    "text": "The second story is a safer location.",
+    "start": 750.7,
+    "duration": 2.1
+  },
+  {
+    "text": "If you're outside and the chopper sees you, it will stay longer and make more passes.",
+    "start": 752.8,
+    "duration": 4.405
+  },
+  {
+    "text": "If inside, it'll do less.",
+    "start": 757.205,
+    "duration": 1.295
+  },
+  {
+    "text": "But you can also just bail out in a car, but be sure to take it away from your base.",
+    "start": 758.5,
+    "duration": 4.685
+  },
+  {
+    "text": "Walk if you have to.",
+    "start": 763.185,
+    "duration": 1.115
+  },
+  {
+    "text": "Car doors are not broken in the game as some have stated.",
+    "start": 804.3,
+    "duration": 3.2
+  },
+  {
+    "text": "When you enter a car, if you press the gas too quickly, the car door will not shut properly.",
+    "start": 807.5,
+    "duration": 4.2
+  },
+  {
+    "text": "You can tell this by the sound it makes.",
+    "start": 811.7,
+    "duration": 2.747
+  },
+  {
+    "text": "If it shuts properly, there's more of a thunk to the sound.",
+    "start": 814.447,
+    "duration": 4.053
+  },
+  {
+    "text": "So always pay attention so you're not grabbed and bitten by an open car door going down the road.",
+    "start": 818.5,
+    "duration": 6.3
+  },
+  {
+    "text": "When walking through trees, you can be scratched by them, so right click and use the Walk To feature to guide your character through safely.",
+    "start": 824.8,
+    "duration": 6.2
+  },
+  {
+    "text": "You can also use it when building rooftops to avoid falling.",
+    "start": 831.0,
+    "duration": 2.7
+  },
+  {
+    "text": "You can use campfires or molotovs to burn down hordes, but be careful, you can burn yourself, too.",
+    "start": 833.7,
+    "duration": 5.3
+  },
+  {
+    "text": "If there's smoke, there's a chance for fire, so be careful walking when burning them down.",
+    "start": 839.0,
+    "duration": 4.4
+  },
+  {
+    "text": "The smaller flames will turn into larger ones when the fire rages.",
+    "start": 843.4,
+    "duration": 3.8
+  },
+  {
+    "text": "You can make a molotov with a bottle of bourbon or filling a glass bottle with gasoline.",
+    "start": 847.2,
+    "duration": 4.3
+  },
+  {
+    "text": "Use a ripped sheet for the wick and it requires a lighter to start before throwing.",
+    "start": 851.5,
+    "duration": 3.8
+  },
+  {
+    "text": "Campfires and antique stoves you can light by making a notched plank and sturdy stick.",
+    "start": 855.3,
+    "duration": 4.3
+  },
+  {
+    "text": "This requires a saw and a screwdriver or knife to make though.",
+    "start": 859.6,
+    "duration": 3.2
+  },
+  {
+    "text": "The best places to locate lighters are glove boxes, on zombies, or in gas station shelves.",
+    "start": 902.8,
+    "duration": 4.9
+  },
+  {
+    "text": "If you spot a zombie with a clothing item you want, be sure to use a blunt weapon as it won't damage the article of clothing.",
+    "start": 907.7,
+    "duration": 6.293
+  },
+  {
+    "text": "Bladed weapons will.",
+    "start": 913.993,
+    "duration": 1.007
+  },
+  {
+    "text": "Sometimes you can find dope helmets on zombies also.",
+    "start": 915.0,
+    "duration": 2.8
+  },
+  {
+    "text": "Survivor zombies and houses are some of the best places to get loot as they have a high chance for rare weapons like axes and machetes.",
+    "start": 917.8,
+    "duration": 7.0
+  },
+  {
+    "text": "They will almost always have zombies inside though, so be careful.",
+    "start": 924.8,
+    "duration": 3.6
+  },
+  {
+    "text": "You can use a claw hammer or a crowbar to remove the barricades, or just aggro the zombies and wait for them to break out.",
+    "start": 928.4,
+    "duration": 5.9
+  },
+  {
+    "text": "There's a chance for burned down houses.",
+    "start": 934.3,
+    "duration": 2.163
+  },
+  {
+    "text": "The fireman zombies or trucks can have fire axes, the best tool for knocking down garage doors.",
+    "start": 936.463,
+    "duration": 5.137
+  },
+  {
+    "text": "They also have fireman suits, which are the warmest and most protective clothing.",
+    "start": 941.6,
+    "duration": 4.1
+  },
+  {
+    "text": "Random construction trucks have a high chance for great loot like tools, including the sledgehammer",
+    "start": 945.7,
+    "duration": 5.096
+  },
+  {
+    "text": "Which you can use to destroy all objects in the game including stairs.",
+    "start": 950.796,
+    "duration": 3.604
+  },
+  {
+    "text": "There's also a high chance for the sledge on metal shelves or warehouse crates.",
+    "start": 954.4,
+    "duration": 3.878
+  },
+  {
+    "text": "Be sure to check those garages.",
+    "start": 958.278,
+    "duration": 1.522
+  },
+  {
+    "text": "The best weapons in Apocalypse mode are actually the hammer and the pipe wrench.",
+    "start": 959.8,
+    "duration": 4.2
+  },
+  {
+    "text": "You can only hit one zombie at a time, but they are the most durable one-handed weapons that won't exhaust your character from using two hands.",
+    "start": 1004.0,
+    "duration": 6.8
+  },
+  {
+    "text": "You can only hit one zombie at a time in Apocalypse mode anyway.",
+    "start": 1010.8,
+    "duration": 3.0
+  },
+  {
+    "text": "But these have good knockdown power and the hammer four-hit quits the higher zombie health.",
+    "start": 1013.8,
+    "duration": 4.7
+  },
+  {
+    "text": "Generators are best found in garages, sheds, and self-storage.",
+    "start": 1018.5,
+    "duration": 3.7
+  },
+  {
+    "text": "They are incredibly heavy, but you can still put them in the passenger seats of cars even though it's red.",
+    "start": 1022.2,
+    "duration": 5.4
+  },
+  {
+    "text": "You'll need the How to Use Generators magazine to operate them and some gasoline to run them.",
+    "start": 1027.6,
+    "duration": 4.4
+  },
+  {
+    "text": "Over time, you'll need electronic scraps to repair them or they can explode, burning down your base.",
+    "start": 1032.0,
+    "duration": 4.7
+  },
+  {
+    "text": "You can acquire electronic scraps by dismantling electronics including watches or radios from cars.",
+    "start": 1036.7,
+    "duration": 5.3
+  },
+  {
+    "text": "When it comes to planting crops, you can use a hand fork, sometimes located on zombies, a trowel, or any shovel to dig furrows.",
+    "start": 1042.0,
+    "duration": 6.5
+  },
+  {
+    "text": "Cabbages and potatoes are the best to plant.",
+    "start": 1048.5,
+    "duration": 2.858
+  },
+  {
+    "text": "Cabbages take 10 days to grow while potatoes take 20.",
+    "start": 1051.358,
+    "duration": 3.442
+  },
+  {
+    "text": "But potatoes will last the longest before rotting.",
+    "start": 1054.8,
+    "duration": 2.7
+  },
+  {
+    "text": "If you lack a freezer, fridge, or generator, you can plant a tile every two days to prolong them.",
+    "start": 1057.5,
+    "duration": 5.8
+  },
+  {
+    "text": "Also, planting a tile apart will prevent disease from spreading between the plants.",
+    "start": 1103.3,
+    "duration": 4.2
+  },
+  {
+    "text": "Don't forget you can tow cars.",
+    "start": 1107.5,
+    "duration": 1.7
+  },
+  {
+    "text": "Set a watch alarm to maintain a sleep schedule.",
+    "start": 1109.2,
+    "duration": 2.3
+  },
+  {
+    "text": "Read books, magazines, and watch TV shows to improve your mood.",
+    "start": 1111.5,
+    "duration": 3.1
+  },
+  {
+    "text": "And use toilet paper or tissues to muffle your coughs and sneezes, should you catch a cold.",
+    "start": 1114.6,
+    "duration": 4.7
+  },
+  {
+    "text": "A good warm night's sleep on a full stomach will alleviate the cold.",
+    "start": 1119.3,
+    "duration": 3.4
+  },
+  {
+    "text": "You can plumb sinks to rain barrels on the roof to remove the need to boil water.",
+    "start": 1122.7,
+    "duration": 3.9
+  },
+  {
+    "text": "This does require a pipe wrench to be able to do.",
+    "start": 1126.6,
+    "duration": 2.7
+  },
+  {
+    "text": "Meta events, which are in-game sounds, migrate the zombies around should they hear it.",
+    "start": 1129.3,
+    "duration": 4.7
+  },
+  {
+    "text": "So always pay attention to this.",
+    "start": 1134.0,
+    "duration": 1.6
+  },
+  {
+    "text": "It could be a gunshot, screams, or even wolves howling.",
+    "start": 1135.6,
+    "duration": 3.8
+  },
+  {
+    "text": "When it comes to fishing, you'll need the magazines to make fishing poles or repair them, should you find them as loot.",
+    "start": 1139.4,
+    "duration": 5.2
+  },
+  {
+    "text": "Dig furrows to get worms as bait or forage up insects.",
+    "start": 1144.6,
+    "duration": 3.0
+  },
+  {
+    "text": "If you find tackle, that's pretty good also, but has a higher chance to catch junk items like shoes or break your line and pole.",
+    "start": 1147.6,
+    "duration": 5.8
+  },
+  {
+    "text": "Spear fishing is useless until you reach higher fishing levels, taking too long to catch at lower levels.",
+    "start": 1153.4,
+    "duration": 5.1
+  },
+  {
+    "text": "Foraging is an incredibly useful feature as you can do it anywhere and different environments contain different chances for loot.",
+    "start": 1158.5,
+    "duration": 6.7
+  },
+  {
+    "text": "Urban areas have the best chance for random items including most in the game,",
+    "start": 1205.2,
+    "duration": 3.647
+  },
+  {
+    "text": "While vegetation and forest areas have the best chance for food, bait, and crafting materials.",
+    "start": 1208.847,
+    "duration": 4.453
+  },
+  {
+    "text": "Don't forget that you can craft hammers, axes, and knives with sticks and stones found from foraging.",
+    "start": 1213.3,
+    "duration": 5.8
+  },
+  {
+    "text": "If you can't find a place to sleep for the night, you can sleep in cars.",
+    "start": 1219.1,
+    "duration": 3.1
+  },
+  {
+    "text": "But there's a chance for zombies coming up to the windows.",
+    "start": 1222.2,
+    "duration": 2.7
+  },
+  {
+    "text": "You can actually park the driver's window up against an object, preventing the zombies from accessing it.",
+    "start": 1224.9,
+    "duration": 5.3
+  },
+  {
+    "text": "The best way to tackle larger hordes are with molotovs, guns, or chipping away at them, crouching",
+    "start": 1230.2,
+    "duration": 4.588
+  },
+  {
+    "text": "And alerting a couple at a time, drawing them away.",
+    "start": 1234.788,
+    "duration": 2.412
+  },
+  {
+    "text": "Guns are pretty useless early game as it takes a high aiming and reloading level to be effective.",
+    "start": 1237.2,
+    "duration": 5.0
+  },
+  {
+    "text": "They draw in tons of zombies from the sound and it'll take a lot of ammunition.",
+    "start": 1242.2,
+    "duration": 4.1
+  },
+  {
+    "text": "The best way to level aiming is to use a shotgun and circle the horde firing into it.",
+    "start": 1246.3,
+    "duration": 4.9
+  },
+  {
+    "text": "Keep in mind though that it takes about 1,000 rounds to reach level 5 aiming.",
+    "start": 1251.2,
+    "duration": 4.0
+  },
+  {
+    "text": "You can also fire a gun from a vehicle through a rolled down window.",
+    "start": 1255.2,
+    "duration": 3.5
+  },
+  {
+    "text": "Should your gun jam, press the X button to rack it.",
+    "start": 1258.7,
+    "duration": 3.0
+  },
+  {
+    "text": "You can open doors from behind you by pressing E, so if you're fighting, kiting backwards, you can back out of a house.",
+    "start": 1301.7,
+    "duration": 6.8
+  },
+  {
+    "text": "Too many dead bodies around can give you corpse sickness, so avoid prolonged exposure.",
+    "start": 1308.5,
+    "duration": 4.8
+  },
+  {
+    "text": "Be sure to wash your character on a regular basis to avoid wound infection or contracting the zomboid virus by being covered in zombie blood.",
+    "start": 1313.3,
+    "duration": 7.3
+  },
+  {
+    "text": "All types of soap will speed up this process.",
+    "start": 1320.6,
+    "duration": 2.5
+  },
+  {
+    "text": "The best way to level Carpentry is by dismantling beds, as they give the highest experience per item.",
+    "start": 1323.1,
+    "duration": 5.1
+  },
+  {
+    "text": "For Metalworking, it's burnt down car wrecks.",
+    "start": 1328.2,
+    "duration": 2.9
+  },
+  {
+    "text": "You can refill a propane torch with a tank found in crates or barbecue grills.",
+    "start": 1331.1,
+    "duration": 4.5
+  },
+  {
+    "text": "For Electrical, it's radios, as they are the most plentiful.",
+    "start": 1335.6,
+    "duration": 3.4
+  },
+  {
+    "text": "Don't worry about Tailoring or First Aid.",
+    "start": 1339.0,
+    "duration": 2.5
+  },
+  {
+    "text": "All other skills are just by completing the actions.",
+    "start": 1341.5,
+    "duration": 3.0
+  },
+  {
+    "text": "Strength and Nimble are the most important combat skills, as Strength gives you more damage",
+    "start": 1344.5,
+    "duration": 4.973
+  },
+  {
+    "text": "And knockdown power while Nimble allows you to walk backwards in aim mode faster.",
+    "start": 1349.473,
+    "duration": 4.427
+  },
+  {
+    "text": "You can level Strength by exercising, and Nimble just by walking in aim mode.",
+    "start": 1353.9,
+    "duration": 4.4
+  },
+  {
+    "text": "Vehicle gas consumption is based off of RPMs, and the sound level produced is also by vehicle condition and RPMs.",
+    "start": 1358.3,
+    "duration": 6.4
+  },
+  {
+    "text": "You can mitigate this by tapping the gas, keeping your RPMs low after the vehicle shifts.",
+    "start": 1404.7,
+    "duration": 5.1
+  },
+  {
+    "text": "It takes a little practice, but is incredibly effective.",
+    "start": 1409.8,
+    "duration": 3.5
+  },
+  {
+    "text": "Tire pressure affects how well the car rolls, and you should keep your speeds low to prevent tire wear, crashing, or rolling the vehicle.",
+    "start": 1413.3,
+    "duration": 6.6
+  },
+  {
+    "text": "If you use your car to mush down zombies, the panels will damage to zero eventually and it will start damaging the parts, causing a breakdown.",
+    "start": 1419.9,
+    "duration": 7.3
+  },
+  {
+    "text": "Also avoid tire blowouts.",
+    "start": 1427.2,
+    "duration": 1.7
+  },
+  {
+    "text": "Remember that long-term survival is based off of avoiding injury, overwhelming or surprising zombies, and ensuring you have long-term food, water, shelter, and weapons covered.",
+    "start": 1428.9,
+    "duration": 10.4
+  },
+  {
+    "text": "Take good care of your character and think about how everything affects them.",
+    "start": 1439.3,
+    "duration": 3.7
+  },
+  {
+    "text": "Treat them as a real person.",
+    "start": 1443.0,
+    "duration": 1.68
+  },
+  {
+    "text": "This game is pretty much a simulator.",
+    "start": 1444.68,
+    "duration": 2.22
+  },
+  {
+    "text": "If I've missed any useful tips, for all you veterans, be sure to help the rookies by leaving a comment.",
+    "start": 1446.9,
+    "duration": 4.8
+  },
+  {
+    "text": "If you found anything useful in the video, leave a like and it'll help get this info to the newbies.",
+    "start": 1451.7,
+    "duration": 4.3
+  },
+  {
+    "text": "If you've got any questions, I'm like a walking encyclopedia for Project Zomboid.",
+    "start": 1456.0,
+    "duration": 3.8
+  },
+  {
+    "text": "Also check out some of my other videos.",
+    "start": 1459.8,
+    "duration": 1.7
+  },
+  {
+    "text": "But for now, I'm off.",
+    "start": 1501.5,
+    "duration": 2.459
+  },
+  {
+    "text": "Thanks for watching.",
+    "start": 1503.959,
+    "duration": 2.341
+  }
+]

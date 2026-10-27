@@ -168,7 +168,7 @@ def process_video_endpoint(
     # Paso 1 (Catálogo Curado): Si video_id está en CURATED_TRANSCRIPTS
     # -------------------------------------------------------------
     if video_id in CURATED_TRANSCRIPTS:
-        logger.info(f"[Curated] Video {video_id} resuelto desde catálogo curado.")
+        logger.info(f"[FastPath] Video {video_id} resuelto desde catálogo curado.")
         curated = CURATED_TRANSCRIPTS[video_id]
         return build_video_response(
             video_id=video_id,

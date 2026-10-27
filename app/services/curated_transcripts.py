@@ -1,6 +1,19 @@
 """Catálogo curado local de transcripciones para videos pedagógicos de práctica."""
 
+import json
+from pathlib import Path
 from typing import Any
+
+_DATA_FILE = Path(__file__).resolve().parent.parent / "data" / "q7ecb76yboo_transcript.json"
+
+if _DATA_FILE.is_file():
+    try:
+        with open(_DATA_FILE, "r", encoding="utf-8") as _f:
+            Q7ECB76YBOO_FULL_CHUNKS = json.load(_f)
+    except Exception:
+        Q7ECB76YBOO_FULL_CHUNKS = []
+else:
+    Q7ECB76YBOO_FULL_CHUNKS = []
 
 
 class CuratedTranscriptEntry(list):
@@ -121,12 +134,16 @@ INTERVIEW_CHUNKS = [
 ]
 
 CURATED_TRANSCRIPTS: dict[str, CuratedTranscriptEntry] = {
+    "Q7ecB76Yboo": CuratedTranscriptEntry(
+        Q7ECB76YBOO_FULL_CHUNKS or PROJECT_ZOMBOID_CHUNKS,
+        title="How to Start Project Zomboid | Ultimate Beginners Guide",
+    ),
     "project_zomboid": CuratedTranscriptEntry(
-        PROJECT_ZOMBOID_CHUNKS,
+        Q7ECB76YBOO_FULL_CHUNKS or PROJECT_ZOMBOID_CHUNKS,
         title="Project Zomboid - Ultimate Survival & Beginner Guide",
     ),
     "zomboid": CuratedTranscriptEntry(
-        PROJECT_ZOMBOID_CHUNKS,
+        Q7ECB76YBOO_FULL_CHUNKS or PROJECT_ZOMBOID_CHUNKS,
         title="Project Zomboid - Ultimate Survival & Beginner Guide",
     ),
     "Project Zomboid": CuratedTranscriptEntry(

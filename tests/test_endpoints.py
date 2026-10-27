@@ -238,6 +238,21 @@ def test_process_video_curated_interview() -> None:
     assert data["segment_count"] >= 5
 
 
+def test_process_video_curated_q7ecb76yboo_full_coverage() -> None:
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/videos/process-video",
+        json={"url": "https://www.youtube.com/watch?v=Q7ecB76Yboo"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["video_id"] == "Q7ecB76Yboo"
+    assert "Project Zomboid" in data["title"] or "Beginners Guide" in data["title"]
+    assert data["segment_count"] >= 200
+    assert data["total_words"] >= 3000
+    assert data["segments"][-1]["end_time"] > 1400.0
+
+
 
 def test_process_video_route_aliases_and_methods_prevent_405() -> None:
     client = TestClient(app)
