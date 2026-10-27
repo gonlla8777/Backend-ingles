@@ -6,7 +6,7 @@ from pathlib import Path
 import re
 import tempfile
 from dataclasses import dataclass
-from typing import Optional
+from typing import Callable, Optional
 
 import requests
 from youtube_transcript_api import YouTubeTranscriptApi
@@ -23,6 +23,8 @@ from youtube_transcript_api.proxies import GenericProxyConfig
 from app.core.config import Settings, get_settings
 from app.core.exceptions import InvalidYouTubeUrlError, TranscriptUnavailableError
 from app.schemas.transcript_schemas import RawTranscriptChunk
+from app.services.curated_transcripts import CURATED_TRANSCRIPTS
+from app.services.gemini_transcript_service import transcribe_youtube_with_gemini
 
 logger = logging.getLogger(__name__)
 
@@ -139,11 +141,6 @@ def create_authenticated_session(
             jar = http.cookiejar.MozillaCookieJar(cookie_file_path)
             jar.load(ignore_discard=True, ignore_expires=True)
             session.cookies.update(jar)
-            logger.info(
-                "Cargadas %d cookies para YouTube desde '%s'",
-                len(session.cookies),
-                cookie_file_path,
-            )
 
         return session
     except Exception as exc:
@@ -157,8 +154,6 @@ def create_authenticated_session(
 
 
 # Retrocompatibilidad para youtube-transcript-api v1.x:
-# Si la clase no tiene get_transcript o list_transcripts como classmethods, se polyfillean
-# admitiendo explícitamente los parámetros `cookies` y `proxies`.
 if not hasattr(YouTubeTranscriptApi, "get_transcript"):
 
     @classmethod
@@ -212,38 +207,49 @@ def get_demo_transcript(video_id: str) -> ExtractedTranscript:
     diseñada para que el reproductor de Flutter active el Auto-Pause, calcule el diff y permita
     practicar la transcripción sin bloqueos por IP de YouTube.
     """
-    demo_chunks = [
-        RawTranscriptChunk(
-            text="Hello and welcome, thank you for joining us today.",
-            start=0.5,
-            duration=4.5,
-        ),
-        RawTranscriptChunk(
-            text="I am excited to be here and discuss this engineering role.",
-            start=6.0,
-            duration=4.8,
-        ),
-        RawTranscriptChunk(
-            text="Could you tell us about your experience designing backend systems?",
-            start=11.5,
-            duration=5.0,
-        ),
-        RawTranscriptChunk(
-            text="In my previous position, I developed microservices using FastAPI.",
-            start=17.5,
-            duration=5.0,
-        ),
-        RawTranscriptChunk(
-            text="How do you handle database latency and caching strategies?",
-            start=23.5,
-            duration=4.8,
-        ),
-        RawTranscriptChunk(
-            text="We implemented Redis caching, which reduced response times significantly.",
-            start=29.5,
-            duration=5.2,
-        ),
-    ]
+    raw_curated = CURATED_TRANSCRIPTS.get(video_id) or CURATED_TRANSCRIPTS.get("demo")
+    if raw_curated:
+        demo_chunks = [
+            RawTranscriptChunk(
+                text=str(c["text"]),
+                start=float(c["start"]),
+                duration=float(c["duration"]),
+            )
+            for c in raw_curated
+        ]
+    else:
+        demo_chunks = [
+            RawTranscriptChunk(
+                text="Hello and welcome, thank you for joining us today.",
+                start=0.5,
+                duration=4.5,
+            ),
+            RawTranscriptChunk(
+                text="I am excited to be here and discuss this engineering role.",
+                start=6.0,
+                duration=4.8,
+            ),
+            RawTranscriptChunk(
+                text="Could you tell us about your experience designing backend systems?",
+                start=11.5,
+                duration=5.0,
+            ),
+            RawTranscriptChunk(
+                text="In my previous position, I developed microservices using FastAPI.",
+                start=17.5,
+                duration=5.0,
+            ),
+            RawTranscriptChunk(
+                text="How do you handle database latency and caching strategies?",
+                start=23.5,
+                duration=4.8,
+            ),
+            RawTranscriptChunk(
+                text="We implemented Redis caching, which reduced response times significantly.",
+                start=29.5,
+                duration=5.2,
+            ),
+        ]
     return ExtractedTranscript(
         video_id=video_id,
         language_code="en",
@@ -272,6 +278,7 @@ def is_ip_blocked_or_retrieval_error(exc: Exception) -> bool:
         "blocking requests from your ip",
         "cloud provider",
         "ipblocked",
+        "ip blocked",
         "requestblocked",
         "could not retrieve a transcript",
         "too many requests",
@@ -281,10 +288,13 @@ def is_ip_blocked_or_retrieval_error(exc: Exception) -> bool:
 
 
 class YouTubeExtractorService:
-    """Servicio thread-safe de extracción de subtítulos usando `youtube-transcript-api`.
+    """Servicio thread-safe de extracción de transcripciones de YouTube.
 
-    Soporta autenticación con cookies Netscape, proxies residenciales/datacenter y fallback
-    pedagógico defensivo ante bloqueos de red.
+    Implementa una cascada de resolución de 4 niveles para eludir bloqueos de red:
+    1. Catálogo curado local (`CURATED_TRANSCRIPTS`).
+    2. Transcripción con Google Gemini API (`Part.from_uri(file_uri=video_url, mime_type='video/*')`).
+    3. Extracción tradicional con `youtube-transcript-api` (cookies y proxy Webshare).
+    4. Fallback defensivo educativo estructurado si todas las fuentes externas fallan.
     """
 
     def __init__(
@@ -293,11 +303,13 @@ class YouTubeExtractorService:
         settings: Settings | None = None,
         cookies_file_path: str | Path | None = None,
         proxy_url: str | None = None,
+        gemini_transcriber: Optional[Callable[[str], list[dict]]] = transcribe_youtube_with_gemini,
     ) -> None:
         self._api_factory = api_factory
         self._settings = settings or get_settings()
         self._cookies_file_path = cookies_file_path
         self._proxy_url = proxy_url
+        self._gemini_transcriber = gemini_transcriber
 
     def fetch_transcript(
         self,
@@ -305,9 +317,76 @@ class YouTubeExtractorService:
         preferred_languages: list[str] | None = None,
     ) -> ExtractedTranscript:
         video_id = extract_video_id(url_or_id)
+        video_url = (
+            url_or_id
+            if url_or_id.startswith("http://") or url_or_id.startswith("https://")
+            else f"https://www.youtube.com/watch?v={video_id}"
+        )
         languages = preferred_languages or ["en", "en-US", "en-GB", "en-AU", "en-CA"]
 
-        # 1. Configuración de Proxies (Webshare u otro proveedor)
+        # -------------------------------------------------------------
+        # Paso 1: Catálogo curado local
+        # -------------------------------------------------------------
+        if video_id in CURATED_TRANSCRIPTS and self._api_factory is YouTubeTranscriptApi:
+            logger.info(
+                f"[YouTubeExtractor] Video '{video_id}' localizado en CURATED_TRANSCRIPTS local. "
+                "Cargando segmentos curados instantáneamente."
+            )
+            chunks = [
+                RawTranscriptChunk(
+                    text=str(item.get("text", "")),
+                    start=float(item.get("start", 0.0)),
+                    duration=max(0.1, float(item.get("duration", 0.0))),
+                )
+                for item in CURATED_TRANSCRIPTS[video_id]
+            ]
+            return ExtractedTranscript(
+                video_id=video_id,
+                language_code="en",
+                is_auto_generated=False,
+                chunks=chunks,
+            )
+
+        # -------------------------------------------------------------
+        # Paso 2: Transcripción directa con Gemini API (multimodal audio/video)
+        # -------------------------------------------------------------
+        if (
+            self._api_factory is YouTubeTranscriptApi
+            and self._settings.has_gemini_key
+            and self._gemini_transcriber
+        ):
+            try:
+                logger.info(
+                    f"[YouTubeExtractor] Intentando transcripción directa con Gemini para '{video_id}' ({video_url})..."
+                )
+                gemini_segments = self._gemini_transcriber(video_url)
+                if gemini_segments:
+                    chunks = [
+                        RawTranscriptChunk(
+                            text=str(item.get("text", "")),
+                            start=float(item.get("start", 0.0)),
+                            duration=max(0.1, float(item.get("duration", 0.0))),
+                        )
+                        for item in gemini_segments
+                    ]
+                    logger.info(
+                        f"[YouTubeExtractor] Éxito transcribiendo con Gemini: {len(chunks)} fragmentos generados."
+                    )
+                    return ExtractedTranscript(
+                        video_id=video_id,
+                        language_code="en",
+                        is_auto_generated=True,
+                        chunks=chunks,
+                    )
+            except Exception as gemini_err:
+                logger.warning(
+                    f"[YouTubeExtractor] Falló transcripción con Gemini para '{video_id}': {gemini_err}. "
+                    "Continuando con scraping tradicional / fallback de contingencia."
+                )
+
+        # -------------------------------------------------------------
+        # Paso 3: Extracción vía youtube-transcript-api (o api_factory mockeada)
+        # -------------------------------------------------------------
         raw_proxy = (
             self._proxy_url
             or self._settings.youtube_proxy_url
@@ -322,7 +401,6 @@ class YouTubeExtractorService:
             else None
         )
 
-        # 2. Configuración de Cookies
         cookies_path = (
             str(self._cookies_file_path)
             if self._cookies_file_path
@@ -345,7 +423,6 @@ class YouTubeExtractorService:
                 transcript_list = self._api_factory.list_transcripts(
                     video_id, **kwargs
                 )
-                selected_transcript = None
                 try:
                     selected_transcript = (
                         transcript_list.find_manually_created_transcript(languages)
@@ -431,6 +508,9 @@ class YouTubeExtractorService:
                     f"Extracción falló aún con cookies_path={cookies_path}: {exc}"
                 )
 
+            # -------------------------------------------------------------
+            # Paso 4: Fallback de contingencia ante fallas de YouTube
+            # -------------------------------------------------------------
             if self._settings.is_fallback_enabled and is_ip_blocked_or_retrieval_error(
                 exc
             ):
