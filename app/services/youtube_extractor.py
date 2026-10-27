@@ -1,12 +1,12 @@
+import atexit
 import http.cookiejar
-import inspect
 import logging
 import os
 from pathlib import Path
 import re
 import tempfile
 from dataclasses import dataclass
-from typing import Optional, Tuple
+from typing import Optional
 
 import requests
 from youtube_transcript_api import YouTubeTranscriptApi
@@ -30,6 +30,8 @@ _YOUTUBE_URL_RE = re.compile(
     r"(?:youtube\.com/(?:watch\?.*?v=|embed/|shorts/|live/)|youtu\.be/)([a-zA-Z0-9_-]{11})"
 )
 
+_ACTIVE_TEMP_COOKIE_FILE: Optional[str] = None
+
 
 @dataclass(frozen=True)
 class ExtractedTranscript:
@@ -50,6 +52,130 @@ def extract_video_id(url_or_id: str) -> str:
         return match.group(1)
 
     raise InvalidYouTubeUrlError(url_or_id)
+
+
+def get_cookies_path() -> Optional[str]:
+    """Obtiene la ruta persistida del archivo de cookies.
+
+    1. Si existe cookies.txt local en la raíz o en backend/.
+    2. Si existe la variable de entorno YOUTUBE_COOKIES_CONTENT, escribe su contenido
+       en un archivo temporal, hace flush() y close() para garantizar su persistencia.
+    """
+    global _ACTIVE_TEMP_COOKIE_FILE
+
+    # 1. Si existe cookies.txt local
+    for candidate in (
+        Path("cookies.txt"),
+        Path("backend/cookies.txt"),
+        Path(__file__).resolve().parent.parent.parent / "cookies.txt",
+    ):
+        if candidate.is_file():
+            return str(candidate.resolve())
+
+    # 2. Si viene por variable de entorno YOUTUBE_COOKIES_CONTENT
+    cookies_content = os.getenv("YOUTUBE_COOKIES_CONTENT")
+    if cookies_content and cookies_content.strip():
+        if _ACTIVE_TEMP_COOKIE_FILE and os.path.exists(_ACTIVE_TEMP_COOKIE_FILE):
+            return _ACTIVE_TEMP_COOKIE_FILE
+
+        normalized = cookies_content.strip()
+        if not (
+            normalized.startswith("# Netscape")
+            or normalized.startswith("# HTTP Cookie File")
+        ):
+            normalized = "# Netscape HTTP Cookie File\n" + normalized
+
+        temp = tempfile.NamedTemporaryFile(
+            mode="w", delete=False, suffix=".txt", encoding="utf-8"
+        )
+        temp.write(normalized + "\n")
+        temp.flush()
+        temp.close()
+        _ACTIVE_TEMP_COOKIE_FILE = temp.name
+        return _ACTIVE_TEMP_COOKIE_FILE
+
+    return None
+
+
+def _cleanup_temp_cookies() -> None:
+    global _ACTIVE_TEMP_COOKIE_FILE
+    if _ACTIVE_TEMP_COOKIE_FILE and os.path.exists(_ACTIVE_TEMP_COOKIE_FILE):
+        try:
+            os.remove(_ACTIVE_TEMP_COOKIE_FILE)
+        except OSError:
+            pass
+        _ACTIVE_TEMP_COOKIE_FILE = None
+
+
+atexit.register(_cleanup_temp_cookies)
+
+
+def create_authenticated_session(
+    cookie_file_path: Optional[str] = None,
+) -> Optional[requests.Session]:
+    """Crea una sesión requests con cookies Netscape y User-Agent de navegador legítimo."""
+    if not cookie_file_path or not os.path.exists(cookie_file_path):
+        return None
+
+    try:
+        session = requests.Session()
+        session.headers.update(
+            {
+                "Accept-Language": "en-US,en;q=0.9",
+                "User-Agent": (
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) "
+                    "Chrome/123.0.0.0 Safari/537.36"
+                ),
+            }
+        )
+        jar = http.cookiejar.MozillaCookieJar(cookie_file_path)
+        jar.load(ignore_discard=True, ignore_expires=True)
+        session.cookies.update(jar)
+        logger.info(
+            "Cargadas %d cookies para YouTube desde '%s'",
+            len(session.cookies),
+            cookie_file_path,
+        )
+        return session
+    except Exception as exc:
+        logger.warning(
+            "No se pudieron cargar cookies desde '%s': %s",
+            cookie_file_path,
+            exc,
+        )
+        return None
+
+
+# Retrocompatibilidad para youtube-transcript-api v1.x:
+# Si la clase no tiene get_transcript o list_transcripts como classmethods, se polyfillean
+# admitiendo explícitamente el parámetro `cookies="/ruta/al/archivo.txt"`.
+if not hasattr(YouTubeTranscriptApi, "get_transcript"):
+
+    @classmethod
+    def _poly_get_transcript(cls, video_id: str, languages=("en",), **kwargs):
+        cookies = kwargs.get("cookies")
+        session = create_authenticated_session(cookies) if cookies else None
+        ytt = cls(http_client=session)
+        t_list = ytt.list(video_id)
+        try:
+            selected = t_list.find_manually_created_transcript(languages)
+        except Exception:
+            selected = t_list.find_generated_transcript(languages)
+        return selected.fetch().to_raw_data()
+
+    YouTubeTranscriptApi.get_transcript = _poly_get_transcript
+
+if not hasattr(YouTubeTranscriptApi, "list_transcripts"):
+
+    @classmethod
+    def _poly_list_transcripts(cls, video_id: str, **kwargs):
+        cookies = kwargs.get("cookies")
+        session = create_authenticated_session(cookies) if cookies else None
+        ytt = cls(http_client=session)
+        return ytt.list(video_id)
+
+    YouTubeTranscriptApi.list_transcripts = _poly_list_transcripts
 
 
 def get_demo_transcript(video_id: str) -> ExtractedTranscript:
@@ -99,144 +225,6 @@ def get_demo_transcript(video_id: str) -> ExtractedTranscript:
     )
 
 
-def create_temp_cookie_file(content: str) -> str:
-    """Escribe el contenido de cookies Netscape en un archivo temporal con limpieza segura."""
-    normalized = content.strip()
-    if not (
-        normalized.startswith("# Netscape")
-        or normalized.startswith("# HTTP Cookie File")
-    ):
-        normalized = "# Netscape HTTP Cookie File\n" + normalized
-
-    temp_file = tempfile.NamedTemporaryFile(
-        mode="w+", delete=False, suffix=".txt", encoding="utf-8"
-    )
-    try:
-        temp_file.write(normalized)
-        temp_file.flush()
-        return temp_file.name
-    finally:
-        temp_file.close()
-
-
-def resolve_cookie_source(
-    settings: Settings | None = None,
-    explicit_path: str | Path | None = None,
-) -> Tuple[Optional[str], bool]:
-    """Resuelve la ruta del archivo de cookies.
-
-    Retorna una tupla: (ruta_del_archivo, es_archivo_temporal).
-    """
-    if explicit_path:
-        p = Path(explicit_path)
-        if p.is_file():
-            return str(p), False
-
-    s = settings or get_settings()
-
-    # 1. Variable de entorno YOUTUBE_COOKIES_CONTENT
-    content = s.youtube_cookies_content or os.getenv("YOUTUBE_COOKIES_CONTENT")
-    if content and content.strip():
-        temp_path = create_temp_cookie_file(content)
-        return temp_path, True
-
-    # 2. Variable de entorno YOUTUBE_COOKIES_FILE_PATH
-    if s.youtube_cookies_file_path:
-        p = Path(s.youtube_cookies_file_path)
-        if p.is_file():
-            return str(p), False
-
-    # 3. Archivo físico cookies.txt en backend/ o raíz del proyecto
-    candidates = [
-        Path("cookies.txt"),
-        Path("backend/cookies.txt"),
-        Path(__file__).resolve().parent.parent.parent / "cookies.txt",
-    ]
-    for candidate in candidates:
-        if candidate.is_file():
-            return str(candidate.resolve()), False
-
-    return None, False
-
-
-def create_authenticated_session(
-    cookie_file_path: str | None = None,
-) -> Optional[requests.Session]:
-    """Crea una sesión requests con cookies Netscape y User-Agent de navegador legítimo."""
-    if not cookie_file_path:
-        return None
-
-    try:
-        session = requests.Session()
-        session.headers.update(
-            {
-                "Accept-Language": "en-US,en;q=0.9",
-                "User-Agent": (
-                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                    "AppleWebKit/537.36 (KHTML, like Gecko) "
-                    "Chrome/123.0.0.0 Safari/537.36"
-                ),
-            }
-        )
-        jar = http.cookiejar.MozillaCookieJar(cookie_file_path)
-        jar.load(ignore_discard=True, ignore_expires=True)
-        session.cookies.update(jar)
-        logger.info(
-            "Cargadas %d cookies para YouTube desde '%s'",
-            len(session.cookies),
-            cookie_file_path,
-        )
-        return session
-    except Exception as exc:
-        logger.warning(
-            "No se pudieron cargar cookies desde '%s': %s",
-            cookie_file_path,
-            exc,
-        )
-        return None
-
-
-def instantiate_transcript_api(
-    api_factory: type[YouTubeTranscriptApi],
-    session: Optional[requests.Session],
-    cookie_file_path: Optional[str],
-) -> YouTubeTranscriptApi:
-    """Instancia la API pasando cookiefile y/o http_client según la firma admitida."""
-    try:
-        sig = inspect.signature(api_factory)
-        kwargs = {}
-
-        if "cookiefile" in sig.parameters and cookie_file_path:
-            kwargs["cookiefile"] = cookie_file_path
-        if "cookies" in sig.parameters and cookie_file_path:
-            kwargs["cookies"] = cookie_file_path
-        if "http_client" in sig.parameters and session:
-            kwargs["http_client"] = session
-
-        has_var_kw = any(
-            p.kind == inspect.Parameter.VAR_KEYWORD for p in sig.parameters.values()
-        )
-        if has_var_kw:
-            if cookie_file_path:
-                kwargs["cookiefile"] = cookie_file_path
-            if session:
-                kwargs["http_client"] = session
-
-        try:
-            return api_factory(**kwargs)
-        except TypeError:
-            # Si api_factory no acepta cookiefile, intentar solo con http_client
-            kwargs.pop("cookiefile", None)
-            kwargs.pop("cookies", None)
-            return api_factory(**kwargs)
-    except Exception:
-        # Fallback de instanciación sin argumentos
-        try:
-            return api_factory()
-        except Exception:
-            return YouTubeTranscriptApi()
-
-
 def is_ip_blocked_or_retrieval_error(exc: Exception) -> bool:
     """Determina si la excepción se debe a bloqueo de IP o indisponibilidad en YouTube."""
     if isinstance(
@@ -266,7 +254,7 @@ def is_ip_blocked_or_retrieval_error(exc: Exception) -> bool:
 
 
 class YouTubeExtractorService:
-    """Servicio thread-safe de extracción de subtítulos usando `youtube-transcript-api` v1.x.
+    """Servicio thread-safe de extracción de subtítulos usando `youtube-transcript-api`.
 
     Soporta autenticación con cookies Netscape y fallback pedagógico cuando YouTube bloquea IPs de datacenters.
     """
@@ -289,30 +277,72 @@ class YouTubeExtractorService:
         video_id = extract_video_id(url_or_id)
         languages = preferred_languages or ["en", "en-US", "en-GB", "en-AU", "en-CA"]
 
-        cookie_path, is_temp = resolve_cookie_source(
-            self._settings, self._cookies_file_path
+        cookies_path = (
+            str(self._cookies_file_path)
+            if self._cookies_file_path
+            else get_cookies_path()
         )
-        session = create_authenticated_session(cookie_path)
+        kwargs = {}
+        if cookies_path:
+            kwargs["cookies"] = cookies_path
 
         try:
-            ytt_api = instantiate_transcript_api(
-                self._api_factory, session, cookie_path
-            )
-
-            transcript_list = ytt_api.list(video_id)
-
-            selected_transcript = None
-            try:
-                selected_transcript = transcript_list.find_manually_created_transcript(
-                    languages
+            # 1. Si api_factory tiene list_transcripts
+            if hasattr(self._api_factory, "list_transcripts"):
+                transcript_list = self._api_factory.list_transcripts(
+                    video_id, **kwargs
                 )
-            except YouTubeTranscriptApiException:
-                selected_transcript = transcript_list.find_generated_transcript(
-                    languages
+                selected_transcript = None
+                try:
+                    selected_transcript = (
+                        transcript_list.find_manually_created_transcript(languages)
+                    )
+                except Exception:
+                    selected_transcript = (
+                        transcript_list.find_generated_transcript(languages)
+                    )
+
+                fetched = selected_transcript.fetch()
+                raw_items = fetched.to_raw_data()
+                language_code = getattr(
+                    selected_transcript, "language_code", "en"
+                )
+                is_auto_generated = bool(
+                    getattr(selected_transcript, "is_generated", False)
                 )
 
-            fetched = selected_transcript.fetch()
-            raw_items = fetched.to_raw_data()
+            # 2. Si api_factory tiene get_transcript
+            elif hasattr(self._api_factory, "get_transcript"):
+                raw_items = self._api_factory.get_transcript(
+                    video_id, languages=languages, **kwargs
+                )
+                language_code = "en"
+                is_auto_generated = False
+
+            # 3. Fallback de instanciación directa
+            else:
+                session = create_authenticated_session(cookies_path)
+                try:
+                    ytt_api = self._api_factory(http_client=session)
+                except TypeError:
+                    ytt_api = self._api_factory()
+                transcript_list = ytt_api.list(video_id)
+                try:
+                    selected_transcript = (
+                        transcript_list.find_manually_created_transcript(languages)
+                    )
+                except Exception:
+                    selected_transcript = (
+                        transcript_list.find_generated_transcript(languages)
+                    )
+                fetched = selected_transcript.fetch()
+                raw_items = fetched.to_raw_data()
+                language_code = getattr(
+                    selected_transcript, "language_code", "en"
+                )
+                is_auto_generated = bool(
+                    getattr(selected_transcript, "is_generated", False)
+                )
 
             chunks = [
                 RawTranscriptChunk(
@@ -325,11 +355,16 @@ class YouTubeExtractorService:
 
             return ExtractedTranscript(
                 video_id=video_id,
-                language_code=selected_transcript.language_code,
-                is_auto_generated=bool(selected_transcript.is_generated),
+                language_code=language_code,
+                is_auto_generated=is_auto_generated,
                 chunks=chunks,
             )
         except Exception as exc:
+            if cookies_path:
+                logger.warning(
+                    f"Extracción falló aún con cookies_path={cookies_path}: {exc}"
+                )
+
             if self._settings.is_fallback_enabled and is_ip_blocked_or_retrieval_error(
                 exc
             ):
@@ -344,10 +379,3 @@ class YouTubeExtractorService:
             if isinstance(exc, YouTubeTranscriptApiException):
                 raise TranscriptUnavailableError(video_id, reason=str(exc)) from exc
             raise TranscriptUnavailableError(video_id, reason=str(exc)) from exc
-        finally:
-            # Limpieza y cierre adecuado del archivo temporal tras la ejecución
-            if is_temp and cookie_path and os.path.exists(cookie_path):
-                try:
-                    os.remove(cookie_path)
-                except OSError:
-                    pass

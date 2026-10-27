@@ -1,3 +1,4 @@
+import logging
 import os
 from unittest.mock import MagicMock
 import pytest
@@ -13,8 +14,8 @@ from app.services.youtube_extractor import (
     YouTubeExtractorService,
     create_authenticated_session,
     extract_video_id,
+    get_cookies_path,
     is_ip_blocked_or_retrieval_error,
-    resolve_cookie_source,
 )
 
 
@@ -31,81 +32,110 @@ def test_extract_video_id_parses_various_formats() -> None:
     )
 
 
-def test_resolve_cookie_source_from_content_creates_tempfile_with_netscape_header() -> None:
+def test_get_cookies_path_from_content_writes_and_closes_tempfile(
+    monkeypatch,
+) -> None:
     raw_cookie_line = ".youtube.com\tTRUE\t/\tTRUE\t2147483647\tSID\tsample_secret_cookie\n"
-    settings = Settings(youtube_cookies_content=raw_cookie_line)
+    monkeypatch.setenv("YOUTUBE_COOKIES_CONTENT", raw_cookie_line)
 
-    file_path, is_temp = resolve_cookie_source(settings=settings)
-    assert file_path is not None
-    assert is_temp is True
-    assert os.path.exists(file_path)
+    cookies_path = get_cookies_path()
+    assert cookies_path is not None
+    assert os.path.exists(cookies_path)
 
-    try:
-        with open(file_path, "r", encoding="utf-8") as f:
-            content = f.read()
+    # Verificar que el archivo está cerrado y se puede leer
+    with open(cookies_path, "r", encoding="utf-8") as f:
+        content = f.read()
 
-        assert "# Netscape HTTP Cookie File" in content
-        assert "sample_secret_cookie" in content
+    assert "# Netscape HTTP Cookie File" in content
+    assert "sample_secret_cookie" in content
 
-        # Verificar que requests.Session carga las cookies con User-Agent
-        session = create_authenticated_session(file_path)
-        assert session is not None
-        assert session.cookies.get("SID") == "sample_secret_cookie"
-        assert "Mozilla/5.0" in session.headers.get("User-Agent", "")
-    finally:
-        if os.path.exists(file_path):
-            os.remove(file_path)
+    # Comprobar que create_authenticated_session lee las cookies
+    session = create_authenticated_session(cookies_path)
+    assert session is not None
+    assert session.cookies.get("SID") == "sample_secret_cookie"
+    assert "Mozilla/5.0" in session.headers.get("User-Agent", "")
 
 
-def test_extractor_passes_cookiefile_and_http_client_to_api_factory() -> None:
-    raw_cookie_line = (
-        "# Netscape HTTP Cookie File\n"
-        ".youtube.com\tTRUE\t/\tTRUE\t2147483647\tLOGIN_INFO\taf_info\n"
+def test_extractor_passes_cookies_kwargs_to_api_factory(monkeypatch) -> None:
+    monkeypatch.setenv(
+        "YOUTUBE_COOKIES_CONTENT",
+        "# Netscape HTTP Cookie File\n.youtube.com\tTRUE\t/\tTRUE\t2147483647\tLOGIN_INFO\taf_info\n",
     )
-    settings = Settings(
-        youtube_cookies_content=raw_cookie_line,
-        enable_mock_fallback=False,
-    )
+    settings = Settings(enable_mock_fallback=False)
 
-    mock_api_instance = MagicMock()
     mock_transcript_list = MagicMock()
     mock_transcript = MagicMock()
     mock_transcript.language_code = "en"
     mock_transcript.is_generated = False
-    mock_fetched = MagicMock()
-    mock_fetched.to_raw_data.return_value = [
+    mock_transcript.fetch.return_value.to_raw_data.return_value = [
         {"text": "Authenticated caption", "start": 0.0, "duration": 2.0}
     ]
-    mock_transcript.fetch.return_value = mock_fetched
-    mock_transcript_list.find_manually_created_transcript.return_value = mock_transcript
-    mock_api_instance.list.return_value = mock_transcript_list
+    mock_transcript_list.find_manually_created_transcript.return_value = (
+        mock_transcript
+    )
 
     captured_kwargs = {}
 
-    def mock_api_factory(**kwargs):
-        captured_kwargs.update(kwargs)
-        return mock_api_instance
+    class MockApi:
+        @classmethod
+        def list_transcripts(cls, video_id, **kwargs):
+            captured_kwargs.update(kwargs)
+            return mock_transcript_list
 
     service = YouTubeExtractorService(
-        api_factory=mock_api_factory,
+        api_factory=MockApi,
         settings=settings,
     )
     result = service.fetch_transcript("dQw4w9WgXcQ")
 
-    assert "cookiefile" in captured_kwargs
-    assert "http_client" in captured_kwargs
-    assert captured_kwargs["http_client"].cookies.get("LOGIN_INFO") == "af_info"
+    assert "cookies" in captured_kwargs
+    assert os.path.exists(captured_kwargs["cookies"])
     assert result.chunks[0].text == "Authenticated caption"
 
 
-def test_extractor_activates_mock_fallback_on_ip_blocked_and_yields_6_sentences_under_35s() -> None:
+def test_extractor_logs_warning_when_failing_with_cookies_path(
+    monkeypatch, caplog
+) -> None:
+    monkeypatch.setenv(
+        "YOUTUBE_COOKIES_CONTENT",
+        "# Netscape HTTP Cookie File\n.youtube.com\tTRUE\t/\tTRUE\t2147483647\tSID\t123\n",
+    )
     settings = Settings(enable_mock_fallback=True)
 
-    mock_api_instance = MagicMock()
-    mock_api_instance.list.side_effect = IpBlocked("dQw4w9WgXcQ")
+    class FailingApi:
+        @classmethod
+        def list_transcripts(cls, video_id, **kwargs):
+            raise IpBlocked(video_id)
 
     service = YouTubeExtractorService(
-        api_factory=lambda **_: mock_api_instance,
+        api_factory=FailingApi,
+        settings=settings,
+    )
+
+    with caplog.at_level(logging.WARNING):
+        result = service.fetch_transcript("dQw4w9WgXcQ")
+
+    # Verificamos que se activa el fallback pedagógico
+    assert result.video_id == "dQw4w9WgXcQ"
+    assert len(result.chunks) == 6
+
+    # Verificamos el log de advertencia con cookies_path
+    assert any(
+        "Extracción falló aún con cookies_path=" in record.message
+        for record in caplog.records
+    )
+
+
+def test_extractor_activates_mock_fallback_on_ip_blocked_under_35s() -> None:
+    settings = Settings(enable_mock_fallback=True)
+
+    class FailingApi:
+        @classmethod
+        def list_transcripts(cls, video_id, **kwargs):
+            raise IpBlocked(video_id)
+
+    service = YouTubeExtractorService(
+        api_factory=FailingApi,
         settings=settings,
     )
 
@@ -124,11 +154,13 @@ def test_extractor_activates_mock_fallback_on_ip_blocked_and_yields_6_sentences_
 def test_extractor_raises_transcript_unavailable_when_fallback_disabled() -> None:
     settings = Settings(enable_mock_fallback=False)
 
-    mock_api_instance = MagicMock()
-    mock_api_instance.list.side_effect = RequestBlocked("dQw4w9WgXcQ")
+    class FailingApi:
+        @classmethod
+        def list_transcripts(cls, video_id, **kwargs):
+            raise RequestBlocked(video_id)
 
     service = YouTubeExtractorService(
-        api_factory=lambda **_: mock_api_instance,
+        api_factory=FailingApi,
         settings=settings,
     )
 
@@ -154,34 +186,3 @@ def test_is_ip_blocked_or_retrieval_error_detection() -> None:
         )
         is True
     )
-
-
-def test_extractor_cleans_up_temp_cookie_file_in_finally() -> None:
-    raw_cookie_line = (
-        "# Netscape HTTP Cookie File\n"
-        ".youtube.com\tTRUE\t/\tTRUE\t2147483647\tSID\ttemp_check\n"
-    )
-    settings = Settings(
-        youtube_cookies_content=raw_cookie_line,
-        enable_mock_fallback=True,
-    )
-
-    created_paths = []
-
-    def mock_api_factory(**kwargs):
-        if "cookiefile" in kwargs:
-            created_paths.append(kwargs["cookiefile"])
-            # El archivo debe existir mientras se ejecuta la invocación
-            assert os.path.exists(kwargs["cookiefile"])
-        raise IpBlocked("test_vid")
-
-    service = YouTubeExtractorService(
-        api_factory=mock_api_factory,
-        settings=settings,
-    )
-
-    service.fetch_transcript("dQw4w9WgXcQ")
-
-    assert len(created_paths) == 1
-    # Tras finalizar la ejecución, el archivo temporal debe haber sido limpiado
-    assert not os.path.exists(created_paths[0])
