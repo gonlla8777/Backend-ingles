@@ -225,18 +225,17 @@ def test_process_video_curated_project_zomboid() -> None:
     assert "Project Zomboid" in data["segments"][0]["text"]
 
 
-def test_process_video_curated_q7ecb76yboo() -> None:
+def test_process_video_curated_interview() -> None:
     client = TestClient(app)
     response = client.post(
         "/api/v1/videos/process-video",
-        json={"url": "https://www.youtube.com/watch?v=Q7ecB76Yboo"},
+        json={"url": "https://www.youtube.com/watch?v=curated_interview"},
     )
     assert response.status_code == 200
     data = response.json()
-    assert data["video_id"] == "Q7ecB76Yboo"
-    assert "Project Zomboid" in data["title"] or "Ultimate Beginners Guide" in data["title"]
+    assert data["video_id"] == "curated_interview"
+    assert "Software Engineer" in data["title"]
     assert data["segment_count"] >= 5
-    assert "Project Zomboid" in data["segments"][0]["text"]
 
 
 

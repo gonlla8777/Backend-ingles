@@ -21,10 +21,10 @@ FALLBACK_MODELS = [
 ]
 
 PROMPT_YOUTUBE_TRANSCRIPTION = """
-Listen carefully to the audio of this YouTube video and generate a precise, chronological transcript in English.
-Divide the speech into natural, coherent sentences or pedagogical learning chunks suitable for a dictation and listening practice app.
+Transcribe EVERY SINGLE spoken word verbatim. Do NOT summarize. Do NOT rephrase or replace words with synonyms. Capture the exact words heard in the audio from start to finish.
+Divide the speech into chronological, complete sentences suitable for an English dictation and listening practice app.
 For each segment, provide:
-- "text": The exact English transcript of that spoken segment.
+- "text": The exact, verbatim English transcript of that spoken segment without omitting or altering any words.
 - "start": Timestamp in seconds (float) when the segment begins.
 - "duration": Duration in seconds (float) of that spoken segment.
 

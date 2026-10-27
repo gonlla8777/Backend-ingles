@@ -121,10 +121,6 @@ INTERVIEW_CHUNKS = [
 ]
 
 CURATED_TRANSCRIPTS: dict[str, CuratedTranscriptEntry] = {
-    "Q7ecB76Yboo": CuratedTranscriptEntry(
-        PROJECT_ZOMBOID_CHUNKS,
-        title="How to Start Project Zomboid | Ultimate Beginners Guide",
-    ),
     "project_zomboid": CuratedTranscriptEntry(
         PROJECT_ZOMBOID_CHUNKS,
         title="Project Zomboid - Ultimate Survival & Beginner Guide",
