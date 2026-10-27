@@ -42,6 +42,7 @@ def healthcheck() -> dict[str, object]:
         "status": "ok",
         "service": settings.app_name,
         "version": settings.app_version,
+        "release": "project-zomboid-post-fix",
         "gemini_configured": settings.has_gemini_key,
         "youtube_cookies_configured": settings.has_youtube_cookies,
         "youtube_proxy_configured": settings.has_youtube_proxy,
