@@ -1,5 +1,6 @@
 from functools import lru_cache
 from pathlib import Path
+from typing import Optional
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -25,8 +26,9 @@ class Settings(BaseSettings):
     gemini_model: str = "gemini-2.5-flash"
 
     # YouTube Transcript Extraction, Cookies & Fallback
-    youtube_cookies_content: str | None = None
-    youtube_cookies_file_path: str | None = None
+    youtube_cookies_content: Optional[str] = None
+    youtube_cookies_file_path: Optional[str] = None
+    enable_mock_fallback: bool = True
     allow_mock_fallback: bool = True
 
     # Guardarraíles pedagógicos de segmentación de subtítulos
@@ -54,7 +56,10 @@ class Settings(BaseSettings):
     def has_youtube_cookies(self) -> bool:
         if self.youtube_cookies_content and self.youtube_cookies_content.strip():
             return True
-        if self.youtube_cookies_file_path and Path(self.youtube_cookies_file_path).is_file():
+        if (
+            self.youtube_cookies_file_path
+            and Path(self.youtube_cookies_file_path).is_file()
+        ):
             return True
         for candidate in (
             Path("cookies.txt"),
@@ -64,6 +69,10 @@ class Settings(BaseSettings):
             if candidate.is_file():
                 return True
         return False
+
+    @property
+    def is_fallback_enabled(self) -> bool:
+        return self.enable_mock_fallback and self.allow_mock_fallback
 
 
 @lru_cache

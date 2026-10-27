@@ -78,11 +78,13 @@ def test_process_video_endpoint_activates_mock_fallback_on_ip_block() -> None:
         def fetch_transcript(self, url_or_id: str, preferred_languages=None):
             raise TranscriptUnavailableError(
                 "dQw4w9WgXcQ",
-                reason="YouTube is blocking requests from your IP",
+                reason="YouTube is blocking requests from your IP. This usually is due to... IP belonging to a cloud provider",
             )
 
     app.dependency_overrides[get_extractor] = lambda: _FailingIpBlockedExtractor()
-    app.dependency_overrides[get_settings] = lambda: Settings(allow_mock_fallback=True)
+    app.dependency_overrides[get_settings] = lambda: Settings(
+        enable_mock_fallback=True
+    )
 
     try:
         client = TestClient(app)
@@ -93,8 +95,10 @@ def test_process_video_endpoint_activates_mock_fallback_on_ip_block() -> None:
         assert response.status_code == 200
         body = response.json()
         assert body["video_id"] == "dQw4w9WgXcQ"
-        assert body["segment_count"] >= 5
+        assert body["segment_count"] == 6
         assert "Hello and welcome" in body["segments"][0]["text"]
+        # Validar que los timestamps están en el rango de práctica [0s, 35s]
+        assert body["segments"][-1]["end_time"] <= 35.0
     finally:
         app.dependency_overrides.clear()
 
@@ -108,7 +112,10 @@ def test_process_video_endpoint_returns_404_when_fallback_disabled() -> None:
             )
 
     app.dependency_overrides[get_extractor] = lambda: _FailingIpBlockedExtractor()
-    app.dependency_overrides[get_settings] = lambda: Settings(allow_mock_fallback=False)
+    app.dependency_overrides[get_settings] = lambda: Settings(
+        enable_mock_fallback=False,
+        allow_mock_fallback=False,
+    )
 
     try:
         client = TestClient(app)

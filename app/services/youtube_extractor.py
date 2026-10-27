@@ -1,16 +1,23 @@
-import atexit
 import http.cookiejar
+import inspect
 import logging
 import os
 from pathlib import Path
 import re
 import tempfile
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, Tuple
 
 import requests
 from youtube_transcript_api import YouTubeTranscriptApi
-from youtube_transcript_api._errors import YouTubeTranscriptApiException
+from youtube_transcript_api._errors import (
+    CouldNotRetrieveTranscript,
+    IpBlocked,
+    NoTranscriptFound,
+    RequestBlocked,
+    TranscriptsDisabled,
+    YouTubeTranscriptApiException,
+)
 
 from app.core.config import Settings, get_settings
 from app.core.exceptions import InvalidYouTubeUrlError, TranscriptUnavailableError
@@ -22,8 +29,6 @@ _DIRECT_VIDEO_ID_RE = re.compile(r"^[a-zA-Z0-9_-]{11}$")
 _YOUTUBE_URL_RE = re.compile(
     r"(?:youtube\.com/(?:watch\?.*?v=|embed/|shorts/|live/)|youtu\.be/)([a-zA-Z0-9_-]{11})"
 )
-
-_CACHED_TEMP_COOKIE_FILE: Optional[str] = None
 
 
 @dataclass(frozen=True)
@@ -48,46 +53,42 @@ def extract_video_id(url_or_id: str) -> str:
 
 
 def get_demo_transcript(video_id: str) -> ExtractedTranscript:
-    """Retorna un transcript estructurado de demostración pedagógica (entrevista técnica simulada).
+    """Retorna una transcripción estructurada de demostración pedagógica (entrevista técnica laboral).
 
-    Se activa automáticamente como fallback defensivo cuando YouTube bloquea solicitudes de scraping
-    por IP o no existen subtítulos accesibles sin credenciales.
+    Simula una conversación en inglés de 6 oraciones con timestamps calculados entre 0s y 35s,
+    diseñada para que el reproductor de Flutter active el Auto-Pause, calcule el diff y permita
+    practicar la transcripción sin bloqueos por IP de YouTube.
     """
     demo_chunks = [
         RawTranscriptChunk(
-            text="Hello and welcome, thank you for taking the time to join us today.",
-            start=1.0,
+            text="Hello and welcome, thank you for joining us today.",
+            start=0.5,
             duration=4.5,
         ),
         RawTranscriptChunk(
-            text="I am excited to be here and learn more about this engineering role.",
-            start=6.2,
+            text="I am excited to be here and discuss this engineering role.",
+            start=6.0,
             duration=4.8,
         ),
         RawTranscriptChunk(
-            text="Could you tell us about your experience designing distributed microservices?",
-            start=11.8,
-            duration=4.7,
+            text="Could you tell us about your experience designing backend systems?",
+            start=11.5,
+            duration=5.0,
         ),
         RawTranscriptChunk(
-            text="In my previous position, I developed backend services using FastAPI and cloud deployments.",
-            start=17.2,
-            duration=5.8,
+            text="In my previous position, I developed microservices using FastAPI.",
+            start=17.5,
+            duration=5.0,
         ),
         RawTranscriptChunk(
-            text="That is impressive, how do you handle database latency and caching strategies?",
-            start=23.8,
-            duration=5.7,
+            text="How do you handle database latency and caching strategies?",
+            start=23.5,
+            duration=4.8,
         ),
         RawTranscriptChunk(
-            text="We implemented Redis caching and query optimization, which reduced latency significantly.",
-            start=30.2,
-            duration=5.6,
-        ),
-        RawTranscriptChunk(
-            text="Excellent answer, let's move on to the practical coding exercise.",
-            start=36.5,
-            duration=4.7,
+            text="We implemented Redis caching, which reduced response times significantly.",
+            start=29.5,
+            duration=5.2,
         ),
     ]
     return ExtractedTranscript(
@@ -98,17 +99,8 @@ def get_demo_transcript(video_id: str) -> ExtractedTranscript:
     )
 
 
-def _write_temp_cookie_file(content: str) -> str:
-    """Escribe el contenido de cookies en formato Netscape a un archivo temporal seguro."""
-    global _CACHED_TEMP_COOKIE_FILE
-    if _CACHED_TEMP_COOKIE_FILE and os.path.exists(_CACHED_TEMP_COOKIE_FILE):
-        try:
-            with open(_CACHED_TEMP_COOKIE_FILE, "r", encoding="utf-8") as f:
-                if f.read().strip() == content.strip():
-                    return _CACHED_TEMP_COOKIE_FILE
-        except OSError:
-            pass
-
+def create_temp_cookie_file(content: str) -> str:
+    """Escribe el contenido de cookies Netscape en un archivo temporal con limpieza segura."""
     normalized = content.strip()
     if not (
         normalized.startswith("# Netscape")
@@ -116,45 +108,45 @@ def _write_temp_cookie_file(content: str) -> str:
     ):
         normalized = "# Netscape HTTP Cookie File\n" + normalized
 
-    with tempfile.NamedTemporaryFile(
-        "w", delete=False, suffix="_yt_cookies.txt", encoding="utf-8"
-    ) as tmp:
-        tmp.write(normalized)
-        tmp.flush()
-        _CACHED_TEMP_COOKIE_FILE = tmp.name
-
-    def _cleanup() -> None:
-        global _CACHED_TEMP_COOKIE_FILE
-        if _CACHED_TEMP_COOKIE_FILE and os.path.exists(_CACHED_TEMP_COOKIE_FILE):
-            try:
-                os.remove(_CACHED_TEMP_COOKIE_FILE)
-            except OSError:
-                pass
-            _CACHED_TEMP_COOKIE_FILE = None
-
-    atexit.register(_cleanup)
-    return _CACHED_TEMP_COOKIE_FILE
+    temp_file = tempfile.NamedTemporaryFile(
+        mode="w+", delete=False, suffix=".txt", encoding="utf-8"
+    )
+    try:
+        temp_file.write(normalized)
+        temp_file.flush()
+        return temp_file.name
+    finally:
+        temp_file.close()
 
 
-def resolve_cookie_file(
+def resolve_cookie_source(
     settings: Settings | None = None,
     explicit_path: str | Path | None = None,
-) -> Optional[str]:
-    """Resuelve la ruta del archivo de cookies según env vars, ruta explícita o archivo local."""
+) -> Tuple[Optional[str], bool]:
+    """Resuelve la ruta del archivo de cookies.
+
+    Retorna una tupla: (ruta_del_archivo, es_archivo_temporal).
+    """
     if explicit_path:
         p = Path(explicit_path)
         if p.is_file():
-            return str(p)
+            return str(p), False
 
     s = settings or get_settings()
-    if s.youtube_cookies_content and s.youtube_cookies_content.strip():
-        return _write_temp_cookie_file(s.youtube_cookies_content)
 
+    # 1. Variable de entorno YOUTUBE_COOKIES_CONTENT
+    content = s.youtube_cookies_content or os.getenv("YOUTUBE_COOKIES_CONTENT")
+    if content and content.strip():
+        temp_path = create_temp_cookie_file(content)
+        return temp_path, True
+
+    # 2. Variable de entorno YOUTUBE_COOKIES_FILE_PATH
     if s.youtube_cookies_file_path:
         p = Path(s.youtube_cookies_file_path)
         if p.is_file():
-            return str(p)
+            return str(p), False
 
+    # 3. Archivo físico cookies.txt en backend/ o raíz del proyecto
     candidates = [
         Path("cookies.txt"),
         Path("backend/cookies.txt"),
@@ -162,15 +154,15 @@ def resolve_cookie_file(
     ]
     for candidate in candidates:
         if candidate.is_file():
-            return str(candidate.resolve())
+            return str(candidate.resolve()), False
 
-    return None
+    return None, False
 
 
 def create_authenticated_session(
     cookie_file_path: str | None = None,
 ) -> Optional[requests.Session]:
-    """Crea una sesión requests con cookies Netscape y User-Agent emulado de navegador."""
+    """Crea una sesión requests con cookies Netscape y User-Agent de navegador legítimo."""
     if not cookie_file_path:
         return None
 
@@ -204,10 +196,79 @@ def create_authenticated_session(
         return None
 
 
+def instantiate_transcript_api(
+    api_factory: type[YouTubeTranscriptApi],
+    session: Optional[requests.Session],
+    cookie_file_path: Optional[str],
+) -> YouTubeTranscriptApi:
+    """Instancia la API pasando cookiefile y/o http_client según la firma admitida."""
+    try:
+        sig = inspect.signature(api_factory)
+        kwargs = {}
+
+        if "cookiefile" in sig.parameters and cookie_file_path:
+            kwargs["cookiefile"] = cookie_file_path
+        if "cookies" in sig.parameters and cookie_file_path:
+            kwargs["cookies"] = cookie_file_path
+        if "http_client" in sig.parameters and session:
+            kwargs["http_client"] = session
+
+        has_var_kw = any(
+            p.kind == inspect.Parameter.VAR_KEYWORD for p in sig.parameters.values()
+        )
+        if has_var_kw:
+            if cookie_file_path:
+                kwargs["cookiefile"] = cookie_file_path
+            if session:
+                kwargs["http_client"] = session
+
+        try:
+            return api_factory(**kwargs)
+        except TypeError:
+            # Si api_factory no acepta cookiefile, intentar solo con http_client
+            kwargs.pop("cookiefile", None)
+            kwargs.pop("cookies", None)
+            return api_factory(**kwargs)
+    except Exception:
+        # Fallback de instanciación sin argumentos
+        try:
+            return api_factory()
+        except Exception:
+            return YouTubeTranscriptApi()
+
+
+def is_ip_blocked_or_retrieval_error(exc: Exception) -> bool:
+    """Determina si la excepción se debe a bloqueo de IP o indisponibilidad en YouTube."""
+    if isinstance(
+        exc,
+        (
+            IpBlocked,
+            RequestBlocked,
+            CouldNotRetrieveTranscript,
+            TranscriptsDisabled,
+            NoTranscriptFound,
+            YouTubeTranscriptApiException,
+        ),
+    ):
+        return True
+
+    msg = str(exc).lower()
+    blocking_patterns = [
+        "blocking requests from your ip",
+        "cloud provider",
+        "ipblocked",
+        "requestblocked",
+        "could not retrieve a transcript",
+        "too many requests",
+        "youtube is blocking",
+    ]
+    return any(pattern in msg for pattern in blocking_patterns)
+
+
 class YouTubeExtractorService:
     """Servicio thread-safe de extracción de subtítulos usando `youtube-transcript-api` v1.x.
 
-    Soporta autenticación con cookies Netscape y fallback pedagógico cuando YouTube bloquea peticiones de nube.
+    Soporta autenticación con cookies Netscape y fallback pedagógico cuando YouTube bloquea IPs de datacenters.
     """
 
     def __init__(
@@ -220,10 +281,6 @@ class YouTubeExtractorService:
         self._settings = settings or get_settings()
         self._cookies_file_path = cookies_file_path
 
-    def _create_http_client(self) -> Optional[requests.Session]:
-        cookie_file = resolve_cookie_file(self._settings, self._cookies_file_path)
-        return create_authenticated_session(cookie_file)
-
     def fetch_transcript(
         self,
         url_or_id: str,
@@ -232,23 +289,16 @@ class YouTubeExtractorService:
         video_id = extract_video_id(url_or_id)
         languages = preferred_languages or ["en", "en-US", "en-GB", "en-AU", "en-CA"]
 
-        session = self._create_http_client()
-        try:
-            if session is not None:
-                try:
-                    ytt_api = self._api_factory(http_client=session)
-                except TypeError:
-                    ytt_api = self._api_factory()
-            else:
-                ytt_api = self._api_factory()
-        except Exception as init_exc:
-            logger.warning(
-                "Error inicializando YouTubeTranscriptApi con http_client: %s. Usando default.",
-                init_exc,
-            )
-            ytt_api = self._api_factory()
+        cookie_path, is_temp = resolve_cookie_source(
+            self._settings, self._cookies_file_path
+        )
+        session = create_authenticated_session(cookie_path)
 
         try:
+            ytt_api = instantiate_transcript_api(
+                self._api_factory, session, cookie_path
+            )
+
             transcript_list = ytt_api.list(video_id)
 
             selected_transcript = None
@@ -280,10 +330,12 @@ class YouTubeExtractorService:
                 chunks=chunks,
             )
         except Exception as exc:
-            if self._settings.allow_mock_fallback:
+            if self._settings.is_fallback_enabled and is_ip_blocked_or_retrieval_error(
+                exc
+            ):
                 logger.warning(
-                    "Fallo de extracción de subtítulos para video '%s' (Error: %s). "
-                    "Activando fallback defensivo educativo con subtítulos de demostración.",
+                    "YouTube IP block detectado para el video '%s' (Error: %s). "
+                    "Activando fallback defensivo educativo con transcripción de demostración.",
                     video_id,
                     str(exc),
                 )
@@ -292,3 +344,10 @@ class YouTubeExtractorService:
             if isinstance(exc, YouTubeTranscriptApiException):
                 raise TranscriptUnavailableError(video_id, reason=str(exc)) from exc
             raise TranscriptUnavailableError(video_id, reason=str(exc)) from exc
+        finally:
+            # Limpieza y cierre adecuado del archivo temporal tras la ejecución
+            if is_temp and cookie_path and os.path.exists(cookie_path):
+                try:
+                    os.remove(cookie_path)
+                except OSError:
+                    pass

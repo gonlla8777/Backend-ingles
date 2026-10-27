@@ -55,7 +55,7 @@ def process_video_endpoint(
             preferred_languages=payload.preferred_languages,
         )
     except TranscriptUnavailableError as exc:
-        if settings.allow_mock_fallback:
+        if settings.is_fallback_enabled:
             video_id = extract_video_id(payload.video_url_or_id)
             logger.warning(
                 "Fallback defensivo en endpoint /process-video para video '%s': %s",
