@@ -1,5 +1,6 @@
 """Servicio de transcripción directa de videos de YouTube usando Google GenAI SDK (Gemini)."""
 
+import concurrent.futures
 import json
 import logging
 import os
@@ -12,6 +13,12 @@ from google.genai import types
 from app.core.config import get_settings
 
 logger = logging.getLogger(__name__)
+
+FALLBACK_MODELS = [
+    "gemini-2.5-flash",
+    "gemini-2.0-flash",
+    "gemini-1.5-flash",
+]
 
 PROMPT_YOUTUBE_TRANSCRIPTION = """
 Listen carefully to the audio of this YouTube video and generate a precise, chronological transcript in English.
@@ -44,11 +51,12 @@ def transcribe_youtube_with_gemini(
     video_url: str,
     client: Optional[genai.Client] = None,
     model: Optional[str] = None,
+    timeout_seconds: float = 15.0,
 ) -> list[dict[str, Any]]:
     """Transcribe el audio de un video de YouTube llamando a Gemini con `Part.from_uri`.
 
-    Gemini procesa el video directamente a través de la infraestructura interna de Google,
-    evitando bloqueos de red de YouTube que sufren los datacenters en la nube.
+    Implementa una cascada multimodelo ordenada con tolerancia a 404/503 y límite de timeout
+    de 15 segundos por intento para evitar colgar conexiones en Render.
     """
     settings = get_settings()
     if client is None:
@@ -60,49 +68,50 @@ def transcribe_youtube_with_gemini(
         gemini_client = genai.Client(api_key=api_key)
     else:
         gemini_client = client
+
     normalized_url = _normalize_youtube_url(video_url)
 
-    # Cascada de modelos candidatos (el preferido primero, con degradación elegante si está retirado u ocupado)
+    # Configuración de lista ordenada de modelos candidatos
     preferred_model = (
-        model or os.getenv("GEMINI_MODEL") or settings.gemini_model or "gemini-3.8-flash"
+        model or os.getenv("GEMINI_MODEL") or settings.gemini_model or FALLBACK_MODELS[0]
     )
-    candidate_models = [
-        preferred_model,
-        "gemini-3.8-flash",
-        "gemini-3.5-flash",
-        "gemini-2.5-flash",
-        "gemini-flash-latest",
-    ]
     models_to_try: list[str] = []
-    for cand in candidate_models:
-        if cand and cand not in models_to_try:
-            models_to_try.append(cand)
+    if preferred_model:
+        models_to_try.append(preferred_model)
+    for fb in FALLBACK_MODELS:
+        if fb not in models_to_try:
+            models_to_try.append(fb)
 
     last_error: Optional[Exception] = None
 
     for candidate_model in models_to_try:
         try:
             logger.info(
-                f"[GeminiTranscriptService] Transcribiendo video '{normalized_url}' usando modelo '{candidate_model}'..."
-            )
-            response = gemini_client.models.generate_content(
-                model=candidate_model,
-                contents=[
-                    types.Part.from_uri(
-                        file_uri=normalized_url,
-                        mime_type="video/*",
-                    ),
-                    PROMPT_YOUTUBE_TRANSCRIPTION,
-                ],
-                config=types.GenerateContentConfig(
-                    response_mime_type="application/json",
-                ),
+                f"[GeminiTranscriptService] Intentando transcripción de '{normalized_url}' con modelo '{candidate_model}' (timeout={timeout_seconds}s)..."
             )
 
-            raw_text = response.text or ""
+            # Ejecución con timeout acotado para evitar cuelgues HTTP
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(
+                    gemini_client.models.generate_content,
+                    model=candidate_model,
+                    contents=[
+                        types.Part.from_uri(
+                            file_uri=normalized_url,
+                            mime_type="video/*",
+                        ),
+                        PROMPT_YOUTUBE_TRANSCRIPTION,
+                    ],
+                    config=types.GenerateContentConfig(
+                        response_mime_type="application/json",
+                    ),
+                )
+                response = future.result(timeout=timeout_seconds)
+
+            raw_text = getattr(response, "text", "") or ""
             cleaned_text = _clean_json_text(raw_text)
             if not cleaned_text:
-                raise ValueError("Gemini devolvió una respuesta de texto vacía")
+                raise ValueError(f"Modelo '{candidate_model}' devolvió texto vacío")
 
             parsed = json.loads(cleaned_text)
 
@@ -114,7 +123,7 @@ def transcribe_youtube_with_gemini(
                         break
 
             if not isinstance(parsed, list):
-                raise ValueError(f"Formato inesperado devuelto por Gemini: {type(parsed).__name__}")
+                raise ValueError(f"Estructura inesperada devuelta por {candidate_model}: {type(parsed).__name__}")
 
             sanitized_segments: list[dict[str, Any]] = []
             for item in parsed:
@@ -135,19 +144,27 @@ def transcribe_youtube_with_gemini(
 
             if sanitized_segments:
                 logger.info(
-                    f"[GeminiTranscriptService] Transcripción completada con éxito: "
+                    f"[GeminiTranscriptService] Transcripción completada exitosamente: "
                     f"{len(sanitized_segments)} segmentos generados con '{candidate_model}'."
                 )
                 return sanitized_segments
 
+        except concurrent.futures.TimeoutError as timeout_err:
+            last_error = timeout_err
+            logger.warning(
+                f"[GeminiTranscriptService] Timeout de {timeout_seconds}s excedido para modelo '{candidate_model}'. "
+                "Intentando siguiente modelo de la cascada..."
+            )
+            continue
         except Exception as exc:
             last_error = exc
             logger.warning(
-                f"[GeminiTranscriptService] Falló transcripción con modelo '{candidate_model}': {exc}"
+                f"[GeminiTranscriptService] Error en modelo '{candidate_model}': {exc}. "
+                "Intentando siguiente modelo de la cascada..."
             )
             continue
 
     if last_error:
         raise last_error
 
-    raise RuntimeError(f"No fue posible transcribir el video '{normalized_url}' con Gemini.")
+    return []

@@ -134,3 +134,37 @@ def test_cascade_step4_fallback_when_gemini_and_scraping_fail() -> None:
     assert result.video_id == "sample67890"
     assert len(result.chunks) == 6
     assert "Hello and welcome" in result.chunks[0].text
+
+
+def test_transcribe_youtube_with_gemini_multi_model_cascade_on_error() -> None:
+    mock_client = MagicMock()
+    # Primer modelo falla con 404/503 (servidor saturado o modelo no encontrado)
+    # Segundo modelo tiene éxito
+    success_response = MagicMock()
+    success_response.text = json.dumps(
+        [
+            {"text": "Fallback model recovered the transcript successfully.", "start": 0.0, "duration": 4.0}
+        ]
+    )
+
+    call_count = 0
+    def mock_generate_content(*args, **kwargs):
+        nonlocal call_count
+        call_count += 1
+        if call_count == 1:
+            raise RuntimeError("503 The model is overloaded. Please try again later.")
+        return success_response
+
+    mock_client.models.generate_content.side_effect = mock_generate_content
+
+    segments = transcribe_youtube_with_gemini(
+        video_url="https://www.youtube.com/watch?v=sampleCascade",
+        client=mock_client,
+        model="gemini-2.5-flash",
+        timeout_seconds=5.0,
+    )
+
+    assert call_count == 2
+    assert len(segments) == 1
+    assert segments[0]["text"] == "Fallback model recovered the transcript successfully."
+
