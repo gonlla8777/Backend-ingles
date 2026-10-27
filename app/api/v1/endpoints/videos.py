@@ -1,4 +1,5 @@
 import logging
+import time
 from fastapi import APIRouter, Depends
 
 from app.core.config import Settings, get_settings
@@ -54,6 +55,7 @@ def process_video_endpoint(
     mentor: GeminiMentorService = Depends(get_mentor),
     settings: Settings = Depends(get_settings),
 ) -> ProcessVideoResponse:
+    start_time = time.perf_counter()
     try:
         extracted = extractor.fetch_transcript(
             url_or_id=payload.video_url_or_id,
@@ -83,6 +85,14 @@ def process_video_endpoint(
         segments = mentor.restore_punctuation_if_needed(segments)
 
     total_words = sum(seg.word_count for seg in segments)
+    elapsed = time.perf_counter() - start_time
+    logger.info(
+        "[process-video] Video '%s' procesado en %.2fs con %d segmentos (%d palabras).",
+        extracted.video_id,
+        elapsed,
+        len(segments),
+        total_words,
+    )
 
     return ProcessVideoResponse(
         video_id=extracted.video_id,
@@ -106,6 +116,7 @@ def process_transcript_endpoint(
     mentor: GeminiMentorService = Depends(get_mentor),
     settings: Settings = Depends(get_settings),
 ) -> ProcessVideoResponse:
+    start_time = time.perf_counter()
     raw_items = payload.raw_transcript
 
     # Si la lista viene vacía y el fallback está activado
@@ -144,6 +155,14 @@ def process_transcript_endpoint(
         segments = mentor.restore_punctuation_if_needed(segments)
 
     total_words = sum(seg.word_count for seg in segments)
+    elapsed = time.perf_counter() - start_time
+    logger.info(
+        "[process-transcript] Video '%s' procesado en %.2fs con %d segmentos (%d palabras).",
+        payload.video_id,
+        elapsed,
+        len(segments),
+        total_words,
+    )
 
     return ProcessVideoResponse(
         video_id=payload.video_id,

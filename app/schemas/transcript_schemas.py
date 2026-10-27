@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
-from typing import Optional
-from pydantic import BaseModel, Field
+from typing import Any, Optional
+from pydantic import BaseModel, Field, model_validator
 
 
 class RawTranscriptChunk(BaseModel):
@@ -31,10 +31,13 @@ class CleanedChunk(BaseModel):
 class ProcessVideoRequest(BaseModel):
     """Payload de entrada para `/process-video`."""
 
-    video_url_or_id: str = Field(
-        ...,
-        min_length=1,
+    video_url_or_id: Optional[str] = Field(
+        default=None,
         description="URL completa de YouTube (watch, youtu.be, shorts) o ID de 11 caracteres.",
+    )
+    url: Optional[str] = Field(
+        default=None,
+        description="Alias opcional de video_url_or_id para compatibilidad con clientes.",
     )
     preferred_languages: list[str] = Field(
         default_factory=lambda: ["en", "en-US", "en-GB", "en-AU", "en-CA"],
@@ -44,6 +47,17 @@ class ProcessVideoRequest(BaseModel):
         default=False,
         description="Si es True y los auto-captions carecen de puntuación, intenta restaurarla con Gemini Flash.",
     )
+
+    @model_validator(mode="before")
+    @classmethod
+    def resolve_url_field(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            val = data.get("video_url_or_id") or data.get("url")
+            if not val or not str(val).strip():
+                raise ValueError("Se requiere 'video_url_or_id' o 'url'.")
+            data["video_url_or_id"] = str(val).strip()
+            data["url"] = str(val).strip()
+        return data
 
 
 class ProcessTranscriptPayload(BaseModel):

@@ -51,13 +51,15 @@ def transcribe_youtube_with_gemini(
     evitando bloqueos de red de YouTube que sufren los datacenters en la nube.
     """
     settings = get_settings()
-    api_key = os.getenv("GEMINI_API_KEY")
-    if api_key is None:
-        api_key = settings.gemini_api_key
-    if not api_key or api_key == "your_gemini_api_key_here":
-        raise ValueError("GEMINI_API_KEY no configurada")
-
-    gemini_client = client or genai.Client(api_key=api_key)
+    if client is None:
+        api_key = os.getenv("GEMINI_API_KEY")
+        if api_key is None:
+            api_key = settings.gemini_api_key
+        if not api_key or api_key == "your_gemini_api_key_here":
+            raise ValueError("GEMINI_API_KEY no configurada")
+        gemini_client = genai.Client(api_key=api_key)
+    else:
+        gemini_client = client
     normalized_url = _normalize_youtube_url(video_url)
 
     # Cascada de modelos candidatos (el preferido primero, con degradación elegante si está retirado u ocupado)
