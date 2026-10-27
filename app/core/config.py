@@ -25,9 +25,10 @@ class Settings(BaseSettings):
     gemini_api_key: str = ""
     gemini_model: str = "gemini-2.5-flash"
 
-    # YouTube Transcript Extraction, Cookies & Fallback
+    # YouTube Transcript Extraction, Cookies, Proxy & Fallback
     youtube_cookies_content: Optional[str] = None
     youtube_cookies_file_path: Optional[str] = None
+    youtube_proxy_url: Optional[str] = None
     enable_mock_fallback: bool = True
     allow_mock_fallback: bool = True
 
@@ -69,6 +70,10 @@ class Settings(BaseSettings):
             if candidate.is_file():
                 return True
         return False
+
+    @property
+    def has_youtube_proxy(self) -> bool:
+        return bool(self.youtube_proxy_url and self.youtube_proxy_url.strip())
 
     @property
     def is_fallback_enabled(self) -> bool:

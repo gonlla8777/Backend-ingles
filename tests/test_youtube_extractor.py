@@ -56,7 +56,11 @@ def test_get_cookies_path_from_content_writes_and_closes_tempfile(
     assert "Mozilla/5.0" in session.headers.get("User-Agent", "")
 
 
-def test_extractor_passes_cookies_kwargs_to_api_factory(monkeypatch) -> None:
+def test_extractor_passes_cookies_and_proxies_to_api_factory(
+    monkeypatch, caplog
+) -> None:
+    proxy_url = "http://user:pass@198.23.243.226:6361"
+    monkeypatch.setenv("YOUTUBE_PROXY_URL", proxy_url)
     monkeypatch.setenv(
         "YOUTUBE_COOKIES_CONTENT",
         "# Netscape HTTP Cookie File\n.youtube.com\tTRUE\t/\tTRUE\t2147483647\tLOGIN_INFO\taf_info\n",
@@ -68,7 +72,7 @@ def test_extractor_passes_cookies_kwargs_to_api_factory(monkeypatch) -> None:
     mock_transcript.language_code = "en"
     mock_transcript.is_generated = False
     mock_transcript.fetch.return_value.to_raw_data.return_value = [
-        {"text": "Authenticated caption", "start": 0.0, "duration": 2.0}
+        {"text": "Proxy extracted caption", "start": 0.0, "duration": 2.0}
     ]
     mock_transcript_list.find_manually_created_transcript.return_value = (
         mock_transcript
@@ -86,11 +90,20 @@ def test_extractor_passes_cookies_kwargs_to_api_factory(monkeypatch) -> None:
         api_factory=MockApi,
         settings=settings,
     )
-    result = service.fetch_transcript("dQw4w9WgXcQ")
+
+    with caplog.at_level(logging.INFO):
+        result = service.fetch_transcript("dQw4w9WgXcQ")
 
     assert "cookies" in captured_kwargs
-    assert os.path.exists(captured_kwargs["cookies"])
-    assert result.chunks[0].text == "Authenticated caption"
+    assert "proxies" in captured_kwargs
+    assert captured_kwargs["proxies"]["http"] == proxy_url
+    assert captured_kwargs["proxies"]["https"] == proxy_url
+    assert result.chunks[0].text == "Proxy extracted caption"
+
+    # Verificar log con proxies=SÍ
+    assert any(
+        "usando proxies=SÍ" in record.message for record in caplog.records
+    )
 
 
 def test_extractor_logs_warning_when_failing_with_cookies_path(

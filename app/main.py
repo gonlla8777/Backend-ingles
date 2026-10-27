@@ -44,6 +44,7 @@ def healthcheck() -> dict[str, object]:
         "version": settings.app_version,
         "gemini_configured": settings.has_gemini_key,
         "youtube_cookies_configured": settings.has_youtube_cookies,
+        "youtube_proxy_configured": settings.has_youtube_proxy,
         "mock_fallback_enabled": settings.is_fallback_enabled,
     }
 

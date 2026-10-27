@@ -18,6 +18,7 @@ from youtube_transcript_api._errors import (
     TranscriptsDisabled,
     YouTubeTranscriptApiException,
 )
+from youtube_transcript_api.proxies import GenericProxyConfig
 
 from app.core.config import Settings, get_settings
 from app.core.exceptions import InvalidYouTubeUrlError, TranscriptUnavailableError
@@ -112,9 +113,10 @@ atexit.register(_cleanup_temp_cookies)
 
 def create_authenticated_session(
     cookie_file_path: Optional[str] = None,
+    proxies: Optional[dict[str, str]] = None,
 ) -> Optional[requests.Session]:
-    """Crea una sesión requests con cookies Netscape y User-Agent de navegador legítimo."""
-    if not cookie_file_path or not os.path.exists(cookie_file_path):
+    """Crea una sesión requests con cookies Netscape, proxies configurados y User-Agent legítimo."""
+    if not cookie_file_path and not proxies:
         return None
 
     try:
@@ -129,19 +131,26 @@ def create_authenticated_session(
                 ),
             }
         )
-        jar = http.cookiejar.MozillaCookieJar(cookie_file_path)
-        jar.load(ignore_discard=True, ignore_expires=True)
-        session.cookies.update(jar)
-        logger.info(
-            "Cargadas %d cookies para YouTube desde '%s'",
-            len(session.cookies),
-            cookie_file_path,
-        )
+
+        if proxies:
+            session.proxies.update(proxies)
+
+        if cookie_file_path and os.path.exists(cookie_file_path):
+            jar = http.cookiejar.MozillaCookieJar(cookie_file_path)
+            jar.load(ignore_discard=True, ignore_expires=True)
+            session.cookies.update(jar)
+            logger.info(
+                "Cargadas %d cookies para YouTube desde '%s'",
+                len(session.cookies),
+                cookie_file_path,
+            )
+
         return session
     except Exception as exc:
         logger.warning(
-            "No se pudieron cargar cookies desde '%s': %s",
+            "Error configurando sesión requests (cookies=%s, proxies=%s): %s",
             cookie_file_path,
+            bool(proxies),
             exc,
         )
         return None
@@ -149,14 +158,23 @@ def create_authenticated_session(
 
 # Retrocompatibilidad para youtube-transcript-api v1.x:
 # Si la clase no tiene get_transcript o list_transcripts como classmethods, se polyfillean
-# admitiendo explícitamente el parámetro `cookies="/ruta/al/archivo.txt"`.
+# admitiendo explícitamente los parámetros `cookies` y `proxies`.
 if not hasattr(YouTubeTranscriptApi, "get_transcript"):
 
     @classmethod
     def _poly_get_transcript(cls, video_id: str, languages=("en",), **kwargs):
         cookies = kwargs.get("cookies")
-        session = create_authenticated_session(cookies) if cookies else None
-        ytt = cls(http_client=session)
+        proxies_dict = kwargs.get("proxies")
+        session = create_authenticated_session(cookies, proxies=proxies_dict)
+        proxy_config = (
+            GenericProxyConfig(
+                http_url=proxies_dict.get("http"),
+                https_url=proxies_dict.get("https"),
+            )
+            if proxies_dict
+            else None
+        )
+        ytt = cls(http_client=session, proxy_config=proxy_config)
         t_list = ytt.list(video_id)
         try:
             selected = t_list.find_manually_created_transcript(languages)
@@ -171,8 +189,17 @@ if not hasattr(YouTubeTranscriptApi, "list_transcripts"):
     @classmethod
     def _poly_list_transcripts(cls, video_id: str, **kwargs):
         cookies = kwargs.get("cookies")
-        session = create_authenticated_session(cookies) if cookies else None
-        ytt = cls(http_client=session)
+        proxies_dict = kwargs.get("proxies")
+        session = create_authenticated_session(cookies, proxies=proxies_dict)
+        proxy_config = (
+            GenericProxyConfig(
+                http_url=proxies_dict.get("http"),
+                https_url=proxies_dict.get("https"),
+            )
+            if proxies_dict
+            else None
+        )
+        ytt = cls(http_client=session, proxy_config=proxy_config)
         return ytt.list(video_id)
 
     YouTubeTranscriptApi.list_transcripts = _poly_list_transcripts
@@ -256,7 +283,8 @@ def is_ip_blocked_or_retrieval_error(exc: Exception) -> bool:
 class YouTubeExtractorService:
     """Servicio thread-safe de extracción de subtítulos usando `youtube-transcript-api`.
 
-    Soporta autenticación con cookies Netscape y fallback pedagógico cuando YouTube bloquea IPs de datacenters.
+    Soporta autenticación con cookies Netscape, proxies residenciales/datacenter y fallback
+    pedagógico defensivo ante bloqueos de red.
     """
 
     def __init__(
@@ -264,10 +292,12 @@ class YouTubeExtractorService:
         api_factory: type[YouTubeTranscriptApi] = YouTubeTranscriptApi,
         settings: Settings | None = None,
         cookies_file_path: str | Path | None = None,
+        proxy_url: str | None = None,
     ) -> None:
         self._api_factory = api_factory
         self._settings = settings or get_settings()
         self._cookies_file_path = cookies_file_path
+        self._proxy_url = proxy_url
 
     def fetch_transcript(
         self,
@@ -277,14 +307,37 @@ class YouTubeExtractorService:
         video_id = extract_video_id(url_or_id)
         languages = preferred_languages or ["en", "en-US", "en-GB", "en-AU", "en-CA"]
 
+        # 1. Configuración de Proxies (Webshare u otro proveedor)
+        raw_proxy = (
+            self._proxy_url
+            or self._settings.youtube_proxy_url
+            or os.getenv("YOUTUBE_PROXY_URL")
+        )
+        proxies = (
+            {
+                "http": raw_proxy.strip(),
+                "https": raw_proxy.strip(),
+            }
+            if raw_proxy and raw_proxy.strip()
+            else None
+        )
+
+        # 2. Configuración de Cookies
         cookies_path = (
             str(self._cookies_file_path)
             if self._cookies_file_path
             else get_cookies_path()
         )
+
         kwargs = {}
+        if proxies:
+            kwargs["proxies"] = proxies
         if cookies_path:
             kwargs["cookies"] = cookies_path
+
+        logger.info(
+            f"Descargando subtítulos para video={video_id} usando proxies={'SÍ' if proxies else 'NO'}"
+        )
 
         try:
             # 1. Si api_factory tiene list_transcripts
@@ -321,11 +374,24 @@ class YouTubeExtractorService:
 
             # 3. Fallback de instanciación directa
             else:
-                session = create_authenticated_session(cookies_path)
+                session = create_authenticated_session(cookies_path, proxies=proxies)
+                proxy_config = (
+                    GenericProxyConfig(
+                        http_url=proxies.get("http"),
+                        https_url=proxies.get("https"),
+                    )
+                    if proxies
+                    else None
+                )
                 try:
-                    ytt_api = self._api_factory(http_client=session)
+                    ytt_api = self._api_factory(
+                        http_client=session, proxy_config=proxy_config
+                    )
                 except TypeError:
-                    ytt_api = self._api_factory()
+                    try:
+                        ytt_api = self._api_factory(http_client=session)
+                    except TypeError:
+                        ytt_api = self._api_factory()
                 transcript_list = ytt_api.list(video_id)
                 try:
                     selected_transcript = (
