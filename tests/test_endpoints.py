@@ -269,3 +269,30 @@ def test_process_video_route_aliases_and_methods_prevent_405() -> None:
     assert res6.status_code == 200
     assert "project_zomboid" in res6.json()["video_id"]
 
+
+def test_process_video_ytdlp_extraction_success() -> None:
+    from unittest.mock import patch
+    from app.services.ytdlp_service import YtDlpSubtitleResult
+
+    fake_result = YtDlpSubtitleResult(
+        segments=[
+            {"text": "Extracted via yt-dlp in milliseconds.", "start": 0.5, "duration": 3.0},
+            {"text": "Zero token consumption on YouTube official captions.", "start": 3.5, "duration": 4.0},
+        ],
+        title="Custom YouTube Video Title",
+    )
+
+    with patch("app.api.v1.endpoints.videos.extract_subtitles_with_ytdlp", return_value=fake_result):
+        client = TestClient(app)
+        response = client.post(
+            "/api/v1/videos/process-video",
+            json={"url": "https://www.youtube.com/watch?v=ytdlpTest123"},
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["video_id"] == "ytdlpTest12"
+        assert data["title"] == "Custom YouTube Video Title"
+        assert data["segment_count"] >= 1
+        assert "yt-dlp" in data["segments"][0]["text"]
+
+

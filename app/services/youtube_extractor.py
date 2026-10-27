@@ -6,7 +6,7 @@ from pathlib import Path
 import re
 import tempfile
 from dataclasses import dataclass
-from typing import Callable, Optional
+from typing import Any, Callable, Optional
 
 import requests
 from youtube_transcript_api import YouTubeTranscriptApi
@@ -25,6 +25,7 @@ from app.core.exceptions import InvalidYouTubeUrlError, TranscriptUnavailableErr
 from app.schemas.transcript_schemas import RawTranscriptChunk
 from app.services.curated_transcripts import CURATED_TRANSCRIPTS
 from app.services.gemini_transcript_service import transcribe_youtube_with_gemini
+from app.services.ytdlp_service import extract_subtitles_with_ytdlp
 
 logger = logging.getLogger(__name__)
 
@@ -310,13 +311,15 @@ class YouTubeExtractorService:
         settings: Settings | None = None,
         cookies_file_path: str | Path | None = None,
         proxy_url: str | None = None,
-        gemini_transcriber: Optional[Callable[[str], list[dict]]] = transcribe_youtube_with_gemini,
+        gemini_transcriber: Optional[Callable[..., list[dict]]] = transcribe_youtube_with_gemini,
+        ytdlp_extractor: Optional[Callable[..., Any]] = extract_subtitles_with_ytdlp,
     ) -> None:
         self._api_factory = api_factory
         self._settings = settings or get_settings()
         self._cookies_file_path = cookies_file_path
         self._proxy_url = proxy_url
         self._gemini_transcriber = gemini_transcriber
+        self._ytdlp_extractor = ytdlp_extractor
 
     def fetch_transcript(
         self,
@@ -355,7 +358,48 @@ class YouTubeExtractorService:
             )
 
         # -------------------------------------------------------------
-        # Paso 2: Transcripción directa con Gemini API (multimodal audio/video)
+        # Paso 2: Extracción con yt-dlp (subtítulos oficiales sin coste de LLM)
+        # -------------------------------------------------------------
+        if self._api_factory is YouTubeTranscriptApi and self._ytdlp_extractor:
+            try:
+                logger.info(
+                    f"[YouTubeExtractor] Intentando extracción con yt-dlp para '{video_id}' ({video_url})..."
+                )
+                ytdlp_result = self._ytdlp_extractor(
+                    video_url,
+                    preferred_languages=languages,
+                )
+                raw_chunks_list = (
+                    ytdlp_result.segments
+                    if hasattr(ytdlp_result, "segments")
+                    else ytdlp_result[0]
+                )
+                if raw_chunks_list:
+                    chunks = [
+                        RawTranscriptChunk(
+                            text=str(item.get("text", "")),
+                            start=float(item.get("start", 0.0)),
+                            duration=max(0.1, float(item.get("duration", 0.0))),
+                        )
+                        for item in raw_chunks_list
+                    ]
+                    logger.info(
+                        f"[YouTubeExtractor] Éxito con yt-dlp: {len(chunks)} fragmentos extraídos."
+                    )
+                    return ExtractedTranscript(
+                        video_id=video_id,
+                        language_code="en",
+                        is_auto_generated=False,
+                        chunks=chunks,
+                    )
+            except Exception as ytdlp_err:
+                logger.warning(
+                    f"[YouTubeExtractor] Falló yt-dlp para '{video_id}': {ytdlp_err}. "
+                    "Continuando con Paso 3 (Gemini)..."
+                )
+
+        # -------------------------------------------------------------
+        # Paso 3: Transcripción directa con Gemini API (multimodal audio/video)
         # -------------------------------------------------------------
         if (
             self._api_factory is YouTubeTranscriptApi
@@ -366,7 +410,10 @@ class YouTubeExtractorService:
                 logger.info(
                     f"[YouTubeExtractor] Intentando transcripción directa con Gemini para '{video_id}' ({video_url})..."
                 )
-                gemini_segments = self._gemini_transcriber(video_url)
+                gemini_segments = self._gemini_transcriber(
+                    video_url,
+                    models_list=["gemini-3.5-flash-lite", "gemini-3.6-flash"],
+                )
                 if gemini_segments:
                     chunks = [
                         RawTranscriptChunk(
@@ -392,7 +439,7 @@ class YouTubeExtractorService:
                 )
 
         # -------------------------------------------------------------
-        # Paso 3: Extracción vía youtube-transcript-api (o api_factory mockeada)
+        # Paso 4: Extracción tradicional vía youtube-transcript-api (o api_factory mockeada)
         # -------------------------------------------------------------
         raw_proxy = (
             self._proxy_url

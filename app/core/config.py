@@ -23,7 +23,7 @@ class Settings(BaseSettings):
 
     # Google Gemini API (Free Tier)
     gemini_api_key: str = ""
-    gemini_model: str = "gemini-2.5-flash"
+    gemini_model: str = "gemini-3.5-flash-lite"
 
     # YouTube Transcript Extraction, Cookies, Proxy & Fallback
     youtube_cookies_content: Optional[str] = None

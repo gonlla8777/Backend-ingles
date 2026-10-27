@@ -15,9 +15,9 @@ from app.core.config import get_settings
 logger = logging.getLogger(__name__)
 
 FALLBACK_MODELS = [
-    "gemini-2.5-flash",
-    "gemini-2.0-flash",
-    "gemini-1.5-flash",
+    "gemini-3.5-flash-lite",
+    "gemini-3.6-flash",
+    "gemini-3.8-flash",
 ]
 
 PROMPT_YOUTUBE_TRANSCRIPTION = """
@@ -51,6 +51,7 @@ def transcribe_youtube_with_gemini(
     video_url: str,
     client: Optional[genai.Client] = None,
     model: Optional[str] = None,
+    models_list: Optional[list[str]] = None,
     timeout_seconds: float = 15.0,
 ) -> list[dict[str, Any]]:
     """Transcribe el audio de un video de YouTube llamando a Gemini con `Part.from_uri`.
@@ -72,11 +73,13 @@ def transcribe_youtube_with_gemini(
     normalized_url = _normalize_youtube_url(video_url)
 
     # Configuración de lista ordenada de modelos candidatos
+    models_to_try: list[str] = []
+    if models_list:
+        models_to_try.extend(models_list)
     preferred_model = (
         model or os.getenv("GEMINI_MODEL") or settings.gemini_model or FALLBACK_MODELS[0]
     )
-    models_to_try: list[str] = []
-    if preferred_model:
+    if preferred_model and preferred_model not in models_to_try:
         models_to_try.append(preferred_model)
     for fb in FALLBACK_MODELS:
         if fb not in models_to_try:
