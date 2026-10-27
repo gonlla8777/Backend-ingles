@@ -105,6 +105,10 @@ class ProcessVideoResponse(BaseModel):
     """Respuesta estructurada de `/process-video` y `/process-transcript`."""
 
     video_id: str
+    title: Optional[str] = Field(
+        default="YouTube Practice Video",
+        description="Título pedagógico o título del video de YouTube.",
+    )
     language_code: str
     is_auto_generated: bool
     segment_count: int

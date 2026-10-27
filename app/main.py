@@ -52,6 +52,9 @@ def healthcheck() -> dict[str, object]:
 # Rutas versionadas consumidas por el cliente Flutter (/api/v1/...)
 app.include_router(api_v1_router, prefix="/api/v1")
 
+# Rutas con prefijo directo /videos/...
+app.include_router(videos.router, prefix="/videos", tags=["Videos Direct"])
+
 # Alias directos en raíz (/process-video, /evaluate-transcription, /quiz-generator)
 app.include_router(videos.router, tags=["Direct Aliases"])
 app.include_router(evaluation.router, tags=["Direct Aliases"])

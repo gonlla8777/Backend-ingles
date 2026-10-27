@@ -209,3 +209,48 @@ def test_quiz_generator_returns_contextual_questions() -> None:
     assert response.status_code == 200
     body = response.json()
     assert len(body["questions"]) == 2
+
+
+def test_process_video_curated_project_zomboid() -> None:
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/videos/process-video",
+        json={"url": "https://www.youtube.com/watch?v=project_zomboid"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["video_id"] == "project_zomboid"
+    assert "Project Zomboid" in data["title"]
+    assert data["segment_count"] >= 5
+    assert "Project Zomboid" in data["segments"][0]["text"]
+
+
+def test_process_video_route_aliases_and_methods_prevent_405() -> None:
+    client = TestClient(app)
+    payload = {"url": "https://www.youtube.com/watch?v=jNQXAC9IVRw"}
+
+    # 1. Rutas con prefijo /api/v1/videos
+    res1 = client.post("/api/v1/videos/process-video", json=payload)
+    assert res1.status_code == 200
+
+    # 2. Rutas con trailing slash
+    res2 = client.post("/api/v1/videos/process-video/", json=payload)
+    assert res2.status_code == 200
+
+    # 3. Alias /api/v1/process-video
+    res3 = client.post("/api/v1/process-video", json=payload)
+    assert res3.status_code == 200
+
+    # 4. Prefijo directo /videos/process-video
+    res4 = client.post("/videos/process-video", json=payload)
+    assert res4.status_code == 200
+
+    # 5. Alias raíz /process-video
+    res5 = client.post("/process-video", json=payload)
+    assert res5.status_code == 200
+
+    # 6. Método GET con query param no arroja 405
+    res6 = client.get("/api/v1/videos/process-video?url=project_zomboid")
+    assert res6.status_code == 200
+    assert "project_zomboid" in res6.json()["video_id"]
+

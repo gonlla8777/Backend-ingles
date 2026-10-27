@@ -45,8 +45,15 @@ class ExtractedTranscript:
 
 
 def extract_video_id(url_or_id: str) -> str:
-    """Extrae el ID de 11 caracteres desde cualquier formato de URL de YouTube."""
-    candidate = url_or_id.strip()
+    """Extrae el ID de 11 caracteres o identificador curado desde una URL o ID."""
+    candidate = (url_or_id or "").strip()
+    if candidate in CURATED_TRANSCRIPTS:
+        return candidate
+    if "zomboid" in candidate.lower():
+        return "project_zomboid"
+    for key in CURATED_TRANSCRIPTS:
+        if key in candidate:
+            return key
     if _direct_match := _DIRECT_VIDEO_ID_RE.match(candidate):
         return _direct_match.group(0)
 
