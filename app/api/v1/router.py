@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import evaluation, quiz, videos
+from app.api.v1.endpoints import dictionary, evaluation, quiz, videos
 
 api_v1_router = APIRouter()
 api_v1_router.include_router(videos.router, prefix="/videos", tags=["Videos"])
@@ -11,3 +11,7 @@ api_v1_router.include_router(
 api_v1_router.include_router(evaluation.router, tags=["Evaluation (alias)"])
 api_v1_router.include_router(quiz.router, prefix="/quiz", tags=["Contextual Quiz"])
 api_v1_router.include_router(quiz.router, tags=["Quiz (alias)"])
+api_v1_router.include_router(
+    dictionary.router, prefix="/dictionary", tags=["Dictionary"]
+)
+api_v1_router.include_router(dictionary.router, tags=["Dictionary (alias)"])

@@ -1,17 +1,27 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api.v1.endpoints import evaluation, quiz, videos
+from app.api.v1.endpoints import dictionary, evaluation, quiz, videos
 from app.api.v1.router import api_v1_router
 from app.core.config import get_settings
 from app.core.exceptions import EchoFlowError
+from app.services.dictionary_proxy_service import dictionary_proxy_service
 
 settings = get_settings()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    yield
+    await dictionary_proxy_service.close()
+
 
 app = FastAPI(
     title=settings.app_name,
     version=settings.app_version,
+    lifespan=lifespan,
     description=(
         "Backend de EchoFlow para extracción y segmentación coherente de subtítulos "
         "de YouTube, evaluación semántica con Gemini Flash y generación de quizzes."
@@ -53,10 +63,12 @@ def healthcheck() -> dict[str, object]:
 # Rutas versionadas consumidas por el cliente Flutter (/api/v1/...)
 app.include_router(api_v1_router, prefix="/api/v1")
 
-# Rutas con prefijo directo /videos/...
+# Rutas con prefijo directo /videos/... y /dictionary/...
 app.include_router(videos.router, prefix="/videos", tags=["Videos Direct"])
+app.include_router(dictionary.router, prefix="/dictionary", tags=["Dictionary Direct"])
 
-# Alias directos en raíz (/process-video, /evaluate-transcription, /quiz-generator)
+# Alias directos en raíz (/process-video, /evaluate-transcription, /quiz-generator, /dictionary)
 app.include_router(videos.router, tags=["Direct Aliases"])
 app.include_router(evaluation.router, tags=["Direct Aliases"])
 app.include_router(quiz.router, tags=["Direct Aliases"])
+app.include_router(dictionary.router, tags=["Direct Aliases"])
