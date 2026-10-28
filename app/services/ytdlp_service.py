@@ -143,14 +143,18 @@ def fetch_subtitle_content(
         else None
     )
 
-    response = requests.get(
-        subtitle_url,
-        headers=headers,
-        proxies=proxies,
-        timeout=timeout,
-    )
-    response.raise_for_status()
-    return response.text
+    try:
+        response = requests.get(
+            subtitle_url,
+            headers=headers,
+            proxies=proxies,
+            timeout=timeout,
+        )
+        response.raise_for_status()
+        return response.text
+    except Exception as exc:
+        logger.warning(f"[yt-dlp] Falló fetch_subtitle_content para '{subtitle_url}': {exc}")
+        raise ValueError(f"Fallo descargando subtítulos desde YouTube timedtext: {exc}") from exc
 
 
 def extract_subtitles_with_ytdlp(
@@ -188,6 +192,13 @@ def extract_subtitles_with_ytdlp(
         "subtitleslangs": langs,
         "quiet": True,
         "no_warnings": True,
+        "extractor_args": {
+            "youtube": {
+                # Emulación de clientes móviles para eludir la detección de bots y
+                # bloqueos de 'Sign in to confirm you’re not a bot' en datacenters (Render).
+                "player_client": ["android", "ios", "web"],
+            }
+        },
     }
 
     if active_cookies and os.path.exists(active_cookies):

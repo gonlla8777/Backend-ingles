@@ -412,7 +412,8 @@ class YouTubeExtractorService:
                 )
                 gemini_segments = self._gemini_transcriber(
                     video_url,
-                    models_list=["gemini-3.5-flash-lite", "gemini-3.6-flash"],
+                    models_list=["gemini-3.5-flash-lite", "gemini-3.6-flash", "gemini-3.8-flash"],
+                    timeout_seconds=80.0,
                 )
                 if gemini_segments:
                     chunks = [

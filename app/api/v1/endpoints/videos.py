@@ -209,7 +209,7 @@ def process_video_endpoint(
     # Paso 3 (Gemini Multimodal Fallback): Si yt-dlp falla o no tiene subtítulos
     # -------------------------------------------------------------
     if not raw_segments:
-        MODELS_TO_TRY = ["gemini-3.5-flash-lite", "gemini-3.6-flash"]
+        MODELS_TO_TRY = ["gemini-3.5-flash-lite", "gemini-3.6-flash", "gemini-3.8-flash"]
         if settings.has_gemini_key:
             try:
                 logger.info(
@@ -218,7 +218,7 @@ def process_video_endpoint(
                 gemini_segments = transcribe_youtube_with_gemini(
                     video_url=video_url,
                     models_list=MODELS_TO_TRY,
-                    timeout_seconds=20.0,
+                    timeout_seconds=80.0,
                 )
                 if gemini_segments:
                     raw_segments = gemini_segments

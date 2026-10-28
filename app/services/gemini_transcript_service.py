@@ -52,12 +52,12 @@ def transcribe_youtube_with_gemini(
     client: Optional[genai.Client] = None,
     model: Optional[str] = None,
     models_list: Optional[list[str]] = None,
-    timeout_seconds: float = 15.0,
+    timeout_seconds: float = 80.0,
 ) -> list[dict[str, Any]]:
     """Transcribe el audio de un video de YouTube llamando a Gemini con `Part.from_uri`.
 
     Implementa una cascada multimodelo ordenada con tolerancia a 404/503 y límite de timeout
-    de 15 segundos por intento para evitar colgar conexiones en Render.
+    realista (80 segundos por intento) para permitir inferencia multimodal y generación estructurada.
     """
     settings = get_settings()
     if client is None:
