@@ -24,6 +24,10 @@ class GeminiSemanticEvaluationSchema(BaseModel):
     accuracy_score: float = Field(ge=0.0, le=1.0)
     verdict: VerdictType
     is_passed: bool
+    translation_es: str | None = Field(
+        default=None,
+        description="Traducción precisa, natural y completa al español de la oración original.",
+    )
     corrections: list[GrammarCorrectionOut] = Field(default_factory=list)
     pronunciation_tip: str | None = None
     formality_register: str | None = None
@@ -39,6 +43,10 @@ class EvaluateTranscriptionResponse(BaseModel):
     is_passed: bool
     xp_earned: int = Field(ge=0)
     combo_multiplier: float
+    translation_es: str | None = Field(
+        default=None,
+        description="Traducción precisa y natural al español de la oración completa.",
+    )
     corrections: list[GrammarCorrectionOut] = Field(default_factory=list)
     pronunciation_tip: str | None = None
     formality_register: str | None = None

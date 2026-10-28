@@ -84,8 +84,37 @@ class GeminiMentorService:
     3. Fallback determinista local si aún no se configuró `GEMINI_API_KEY`.
     """
 
+    _translation_cache: dict[str, str] = {}
+
     def __init__(self, settings: Settings | None = None) -> None:
         self._settings = settings or get_settings()
+
+    def _get_translation(self, text: str) -> str | None:
+        cleaned = text.strip()
+        if not cleaned:
+            return None
+        cached = self._translation_cache.get(cleaned)
+        if cached:
+            return cached
+        if self._settings.has_gemini_key:
+            try:
+                client = genai.Client(api_key=self._settings.gemini_api_key)
+                prompt = (
+                    "Traduce al español de forma natural, fiel y concisa la siguiente oración en inglés. "
+                    "Devuelve ÚNICAMENTE la traducción al español, sin explicaciones, comillas ni texto adicional:\n\n"
+                    f"{cleaned}"
+                )
+                res = client.models.generate_content(
+                    model=self._settings.gemini_model,
+                    contents=prompt,
+                )
+                translated = res.text.strip() if res.text else None
+                if translated:
+                    self._translation_cache[cleaned] = translated
+                return translated
+            except Exception:
+                pass
+        return None
 
     def evaluate_transcription(
         self, req: EvaluateTranscriptionRequest
@@ -117,6 +146,7 @@ class GeminiMentorService:
                 is_passed=True,
                 xp_earned=xp,
                 combo_multiplier=req.combo_multiplier,
+                translation_es=self._get_translation(req.reference_text),
                 corrections=[],
                 pronunciation_tip=self._quick_local_pronunciation_tip(
                     req.reference_text
@@ -135,6 +165,7 @@ class GeminiMentorService:
                 is_passed=True,
                 xp_earned=xp,
                 combo_multiplier=req.combo_multiplier,
+                translation_es=self._get_translation(req.reference_text),
                 corrections=[],
                 pronunciation_tip=(
                     "¡Excelente! Usaste una variante equivalente (contracción/forma completa) "
@@ -165,8 +196,11 @@ class GeminiMentorService:
             f"Oración original del video: \"{req.reference_text}\"\n"
             f"Transcripción del estudiante: \"{req.user_input}\"\n\n"
             "Evalúa con tolerancia a variantes coloquiales/formales válidas y contracciones. "
-            "Devuelve correcciones puntuales en español, un tip breve de pronunciación "
-            "(connected speech / linking), el registro de formalidad y explicación de modismos si existen."
+            "Devuelve:\n"
+            "- translation_es: la traducción fiel, precisa y natural al español de la oración completa original del video.\n"
+            "- corrections: correcciones puntuales en español si hay discrepancias o errores.\n"
+            "- pronunciation_tip: tip breve de pronunciación (connected speech / linking).\n"
+            "- formality_register: registro de formalidad y notas de modismos si existen."
         )
         response = client.models.generate_content(
             model=self._settings.gemini_model,
@@ -185,6 +219,9 @@ class GeminiMentorService:
             else 0
         )
 
+        if parsed.translation_es:
+            self._translation_cache[req.reference_text.strip()] = parsed.translation_es
+
         return EvaluateTranscriptionResponse(
             segment_index=req.segment_index,
             user_input=req.user_input,
@@ -194,6 +231,7 @@ class GeminiMentorService:
             is_passed=parsed.is_passed,
             xp_earned=xp,
             combo_multiplier=req.combo_multiplier,
+            translation_es=parsed.translation_es,
             corrections=parsed.corrections,
             pronunciation_tip=parsed.pronunciation_tip,
             formality_register=parsed.formality_register,
@@ -207,6 +245,8 @@ class GeminiMentorService:
         usr_canonical: str,
         ref_word_count: int,
     ) -> EvaluateTranscriptionResponse:
+        translation = self._get_translation(req.reference_text)
+
         if not usr_canonical:
             return EvaluateTranscriptionResponse(
                 segment_index=req.segment_index,
@@ -217,6 +257,7 @@ class GeminiMentorService:
                 is_passed=False,
                 xp_earned=0,
                 combo_multiplier=1.0,
+                translation_es=translation,
                 corrections=[
                     GrammarCorrectionOut(
                         original_fragment="(vacío)",
@@ -259,6 +300,7 @@ class GeminiMentorService:
             is_passed=is_passed,
             xp_earned=xp,
             combo_multiplier=req.combo_multiplier if is_passed else 1.0,
+            translation_es=translation,
             corrections=corrections,
             pronunciation_tip=self._quick_local_pronunciation_tip(req.reference_text),
             formality_register=self._infer_local_register(req.reference_text),

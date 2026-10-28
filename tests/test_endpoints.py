@@ -191,6 +191,7 @@ def test_evaluate_transcription_accepts_canonical_contractions() -> None:
     assert body["verdict"] == "semantic_equivalent"
     assert body["is_passed"] is True
     assert body["xp_earned"] > 0
+    assert "translation_es" in body
 
 
 def test_quiz_generator_returns_contextual_questions() -> None:
