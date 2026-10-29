@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field
 
 class WordMeaningOut(BaseModel):
     part_of_speech: str = Field(
-        ...,
+        default="general",
         description="Parte de la oración (ej. noun, verb, adjective).",
     )
     definition: str = Field(
@@ -26,8 +26,19 @@ class WordDefinitionOut(BaseModel):
         default=None,
         description="Transcripción fonética (IPA).",
     )
+    part_of_speech: Optional[str] = Field(
+        default=None,
+        description="Categoría gramatical principal.",
+    )
+    definition: Optional[str] = Field(
+        default=None,
+        description="Definición concisa principal.",
+    )
+    translation_es: Optional[str] = Field(
+        default=None,
+        description="Traducción contextual al español.",
+    )
     meanings: list[WordMeaningOut] = Field(
         default_factory=list,
         description="Lista de significados ordenados por relevancia.",
     )
-
