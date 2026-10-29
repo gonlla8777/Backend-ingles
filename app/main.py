@@ -52,7 +52,7 @@ def healthcheck() -> dict[str, object]:
         "status": "ok",
         "service": settings.app_name,
         "version": settings.app_version,
-        "release": "curated-q7ecb76yboo-v2",
+        "release": "dictionary-lemmatization-v1",
         "gemini_configured": settings.has_gemini_key,
         "youtube_cookies_configured": settings.has_youtube_cookies,
         "youtube_proxy_configured": settings.has_youtube_proxy,

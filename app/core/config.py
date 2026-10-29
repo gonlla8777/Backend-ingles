@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     """Configuración tipada del microservicio EchoFlow."""
 
     app_name: str = "EchoFlow Backend API"
-    app_version: str = "0.1.1"
+    app_version: str = "0.1.2"
     app_env: str = "development"
     cors_origins: list[str] = [
         "http://localhost:3000",
